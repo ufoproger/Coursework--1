@@ -19,6 +19,7 @@ class cPoints
 		cPoints ();
 		void correct (int, int);
 		void clear ();
+		void calc (int, int);
 		void push (int, int, int, int);
 		void push (cPoints);
 		bool save_to_file (Glib::ustring);

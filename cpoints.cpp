@@ -7,6 +7,28 @@
 
 #include "cpoints.h"
 
+int calc_point_pos (sPoint a, sPoint b, sPoint c) // Вычисление положения точки относительно вектора
+{
+	float t = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+	return (!t) ? (0) : ((t > 0) ? (1) : (-1)); // -1 - справа, 0 - на его прямой и 1 - слева
+}
+
+void cPoints::calc (int brg, int direction)
+{
+	for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
+		if (a[0].first.x > it->first.x || (a[0].first.x == it->first.x && a[0].first.y > it->first.y))
+			swap(a[0], *it);
+
+//	for (pointsArray::iterator itI = a.begin() + 1; itI != a.end() - 1; ++itI, brg *= direction)
+//		for (pointsArray::iterator itJ = itI + 1; itJ != a.end(); ++itJ)
+//			if (calc_point_pos((itI - 1)->first, itI->first, itJ->first) == brg)
+//				swap(*itI, *itJ);
+	for (int i = 1; i < a.size() - 1; ++i, brg *= direction)
+		for (int j = i + 1; j < a.size(); ++j)
+			if (calc_point_pos(a[i - 1].first, a[i].first, a[j].first) == brg)
+				swap(a[i], a[j]);
+}
+
 sPoint cPoints::correct_point (sPoint point, int width, int height)
 {
 	point.x = std::max(std::min(point.x, width - minTab), (int)minTab);
@@ -94,11 +116,14 @@ void cPoints::push (cPoints points)
 {
 	for (pointsArray::iterator it = points.a.begin(); it != points.a.end(); ++it)
 		a.push_back(*it);
+		
+	calc(1, -1);
 }
 
 void cPoints::push (int x, int y, int width, int height)
 {
 	a.push_back(std::make_pair(sPoint((float)x / (float)width * infelicity, (float)y / (float)height * infelicity), correct_point(sPoint(x, y), width, height)));
+	calc(1, -1);
 }
 
 void cPoints::correct (int newWidth, int newHeight)
