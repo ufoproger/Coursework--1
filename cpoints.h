@@ -3,8 +3,9 @@
 
 #include <utility>
 #include <vector>
-#include <gtkmm.h>
 
+#include "cpoint.h"
+/*
 struct sPoint
 {
 	int x;
@@ -12,6 +13,7 @@ struct sPoint
 	
 	sPoint (int _x, int _y) : x(_x), y(_y) {}
 };
+*/
 
 class cPoints
 {
@@ -19,7 +21,8 @@ class cPoints
 		cPoints ();
 		void correct (int, int);
 		void clear ();
-		void calc (int, int);
+		void set_calc_rule (bool, bool);
+		void calc ();
 		void push (int, int, int, int);
 		void push (cPoints);
 		bool save_to_file (Glib::ustring);
@@ -30,6 +33,8 @@ class cPoints
 	private:
 		static const float infelicity = 400.0;
 		static const int minTab = 7;
+		int rightTurn;
+		int sided;
 		typedef std::vector < std::pair < sPoint , sPoint > > pointsArray;
 		pointsArray a;
 		
