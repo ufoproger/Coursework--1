@@ -4,16 +4,9 @@
 #include <utility>
 #include <vector>
 
+#include <glibmm.h>
+
 #include "cpoint.h"
-/*
-struct sPoint
-{
-	int x;
-	int y;
-	
-	sPoint (int _x, int _y) : x(_x), y(_y) {}
-};
-*/
 
 class cPoints
 {
@@ -28,17 +21,17 @@ class cPoints
 		bool save_to_file (Glib::ustring);
 		int read_from_file (Glib::ustring);
 		int size ();
-		sPoint operator[] (int);
+		cPoint operator[] (int);
 		
 	private:
 		static const float infelicity = 400.0;
 		static const int minTab = 7;
 		int rightTurn;
 		int sided;
-		typedef std::vector < std::pair < sPoint , sPoint > > pointsArray;
+		typedef std::vector < std::pair < cPoint , cPoint > > pointsArray;
 		pointsArray a;
 		
-		sPoint correct_point (sPoint, int, int);
+		cPoint correct_point (cPoint, int, int);
 };
 
 #endif

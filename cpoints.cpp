@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 
-#include <gtkmm.h>
+#include <glibmm.h>
 
 #include "cpoints.h"
 #include "cpoint.h"
@@ -17,13 +17,7 @@ void cPoints::set_calc_rule (bool isSided, bool isRightTurn)
 		
 	calc();
 }
-/*
-int calc_point_pos (sPoint a, sPoint b, sPoint c)
-{
-	float t = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-	return (fabs(t) < 1e-6) ? (0) : ((t > 0) ? (1) : (-1)); // -1 - справа, 0 - на его прямой и 1 - слева
-}
-*/
+
 void cPoints::calc ()
 {
 	for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
@@ -31,16 +25,14 @@ void cPoints::calc ()
 			swap(*a.begin(), *it);
 
 	int currRightTurn = rightTurn;
-	int currSided = sided;
 
-	for (pointsArray::iterator itI = a.begin() + 1; itI < a.end() - 1; ++itI, currRightTurn *= currSided)
+	for (pointsArray::iterator itI = a.begin() + 1; itI < a.end() - 1; ++itI, currRightTurn *= sided)
 		for (pointsArray::iterator itJ = itI + 1; itJ < a.end(); ++itJ)
-//			if (calc_point_pos((itI - 1)->first, itI->first, itJ->first) == currRightTurn)
-			if (itJ->first.calc_point_pos((itI - 1)->first, itI->first) == currRightTurn)
+			if (itJ->first.point_position((itI - 1)->first, itI->first) == currRightTurn)
 					swap(*itI, *itJ);
 }
 
-sPoint cPoints::correct_point (sPoint point, int width, int height)
+cPoint cPoints::correct_point (cPoint point, int width, int height)
 {
 	point.x = std::max(std::min(point.x, width - minTab), (int)minTab);
 	point.y = std::max(std::min(point.y, height - minTab), (int)minTab);
@@ -72,7 +64,7 @@ int cPoints::read_from_file (Glib::ustring filename)
 	int count = 0;
 	
 	for (float x, y; fin >> x >> y;)
-		a.push_back(std::make_pair(sPoint(0, 0), sPoint(x, y)));
+		a.push_back(std::make_pair(cPoint(0, 0), cPoint(x, y)));
 	
 	if (a.size() == 0)
 		return 0;
@@ -106,7 +98,7 @@ int cPoints::read_from_file (Glib::ustring filename)
 	float indexY = infelicity / (float)(maxY - minY + minTab);
 
 	for (pointsArray::iterator it = a.begin(); it != a.end(); ++it)
-		it->first = sPoint((float)it->second.x * indexX, (float)it->second.y * indexY);
+		it->first = cPoint((float)it->second.x * indexX, (float)it->second.y * indexY);
 	
 	return a.size();
 }
@@ -136,7 +128,7 @@ void cPoints::push (cPoints points)
 
 void cPoints::push (int x, int y, int width, int height)
 {
-	a.push_back(std::make_pair(sPoint((float)x / (float)width * infelicity, (float)y / (float)height * infelicity), correct_point(sPoint(x, y), width, height)));
+	a.push_back(std::make_pair(cPoint((float)x / (float)width * infelicity, (float)y / (float)height * infelicity), correct_point(cPoint(x, y), width, height)));
 	calc();
 }
 
@@ -146,10 +138,10 @@ void cPoints::correct (int newWidth, int newHeight)
 	float indexY = (float)newHeight/infelicity;
 
 	for (pointsArray::iterator it = a.begin(); it != a.end(); ++it)
-		it->second = correct_point(sPoint((float)it->first.x * indexX, (float)it->first.y * indexY), newWidth, newHeight);
+		it->second = correct_point(cPoint((float)it->first.x * indexX, (float)it->first.y * indexY), newWidth, newHeight);
 }
 
-sPoint cPoints::operator[] (int index)
+cPoint cPoints::operator[] (int index)
 {
 	return a[index].second;
 }
