@@ -146,7 +146,8 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 	{
 		points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height());
 		pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-		pSB1->push(Glib::ustring::compose("Точка с координатами (%1, %2) добавлена на плоскость", event->x, event->y));
+//		pSB1->push(Glib::ustring::compose("Точка с координатами (%1, %2) добавлена на плоскость", event->x, event->y));
+		pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
 	}
 	
 	return true;

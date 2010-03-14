@@ -29,7 +29,7 @@ void cPoints::calc ()
 	for (pointsArray::iterator itI = a.begin() + 1; itI < a.end() - 1; ++itI, currRightTurn *= sided)
 		for (pointsArray::iterator itJ = itI + 1; itJ < a.end(); ++itJ)
 			if (itJ->first.point_position((itI - 1)->first, itI->first) == currRightTurn)
-					swap(*itI, *itJ);
+				swap(*itI, *itJ);
 }
 
 cPoint cPoints::correct_point (cPoint point, int width, int height)
