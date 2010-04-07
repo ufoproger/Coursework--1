@@ -21,15 +21,14 @@ class cPoints
 		bool save_to_file (Glib::ustring);
 		int read_from_file (Glib::ustring);
 		int size ();
-		cPoint operator[] (int);
+		cPoint operator[] (size_t);
 		
 	private:
 		static const float infelicity = 400.0;
 		static const int minTab = 7;
+		std::vector < std::pair < cPoint , cPoint > > a;
 		int rightTurn;
 		int sided;
-		typedef std::vector < std::pair < cPoint , cPoint > > pointsArray;
-		pointsArray a;
 		
 		cPoint correct_point (cPoint, int, int);
 };

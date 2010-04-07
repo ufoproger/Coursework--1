@@ -20,16 +20,16 @@ void cPoints::set_calc_rule (bool isSided, bool isRightTurn)
 
 void cPoints::calc ()
 {
-	for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
-		if (a.begin()->first.x > it->first.x || (a.begin()->first.x == it->first.x && a.begin()->first.y > it->first.y))
-			swap(*a.begin(), *it);
+	for (size_t i = 1, size = a.size(); i < size; ++i)
+		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
+			swap(a[0], a[i]);
 
 	int currRightTurn = rightTurn;
 
-	for (pointsArray::iterator itI = a.begin() + 1; itI < a.end() - 1; ++itI, currRightTurn *= sided)
-		for (pointsArray::iterator itJ = itI + 1; itJ < a.end(); ++itJ)
-			if (itJ->first.point_position((itI - 1)->first, itI->first) == currRightTurn)
-				swap(*itI, *itJ);
+	for (size_t i = 1, size = a.size(); i < size - 1; ++i, currRightTurn *= sided)
+		for (size_t j = i + 1; j < size; ++j)
+			if (a[j].first.point_position(a[i - 1].first, a[i].first) == currRightTurn)
+				swap(a[i], a[j]);
 }
 
 cPoint cPoints::correct_point (cPoint point, int width, int height)
@@ -48,8 +48,8 @@ bool cPoints::save_to_file (Glib::ustring filename)
 	if (!fout)
 		return false;
 
-	for (pointsArray::iterator it = a.begin(); it != a.end(); ++it)
-		fout << it->first.x << " " << it->first.y << std::endl;
+	for (size_t i = 0; i < a.size(); ++i)
+		fout << a[i].first.x << " " << a[i].first.y << std::endl;
 		
 	return true;
 }
@@ -73,32 +73,32 @@ int cPoints::read_from_file (Glib::ustring filename)
 	minX = maxX = a[0].second.x;
 	minY = maxY = a[0].second.y; 
 	
-	for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
+	for (size_t i = 1; i < a.size(); ++i)
 	{
-		minX = std::min(minX, it->second.x);
-		minY = std::min(minY, it->second.y);
-		maxX = std::max(maxX, it->second.x);
-		maxY = std::max(maxY, it->second.y);
+		minX = std::min(minX, a[i].second.x);
+		minY = std::min(minY, a[i].second.y);
+		maxX = std::max(maxX, a[i].second.x);
+		maxY = std::max(maxY, a[i].second.y);
 	}
 	
 	minX -= minTab;
 	minY -= minTab;
 
 	if (minX < 0)
-		for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
-			it->second.x -= minX;
+		for (size_t i = 1; i < a.size(); ++i)
+			a[i].second.x -= minX;
 
 	if (minY < 0)
-		for (pointsArray::iterator it = a.begin() + 1; it != a.end(); ++it)
-			it->second.y -= minY;
+		for (size_t i = 1; i < a.size(); ++i)
+			a[i].second.y -= minY;
 			
 	minX = minY = 0;
 
 	float indexX = infelicity / (float)(maxX - minX + minTab);
 	float indexY = infelicity / (float)(maxY - minY + minTab);
 
-	for (pointsArray::iterator it = a.begin(); it != a.end(); ++it)
-		it->first = cPoint((float)it->second.x * indexX, (float)it->second.y * indexY);
+	for (size_t i = 0; i < a.size(); ++i)
+		a[i].first = cPoint((float)a[i].second.x * indexX, (float)a[i].second.y * indexY);
 	
 	return a.size();
 }
@@ -120,8 +120,8 @@ int cPoints::size ()
 
 void cPoints::push (cPoints points)
 {
-	for (pointsArray::iterator it = points.a.begin(); it != points.a.end(); ++it)
-		a.push_back(*it);
+	for (size_t i = 0; i < points.a.size(); ++i)
+		a.push_back(points.a[i]);
 		
 	calc();
 }
@@ -137,11 +137,11 @@ void cPoints::correct (int newWidth, int newHeight)
 	float indexX = (float)newWidth/infelicity;
 	float indexY = (float)newHeight/infelicity;
 
-	for (pointsArray::iterator it = a.begin(); it != a.end(); ++it)
-		it->second = correct_point(cPoint((float)it->first.x * indexX, (float)it->first.y * indexY), newWidth, newHeight);
+	for (size_t i = 0; i < a.size(); ++i)
+		a[i].second = correct_point(cPoint((float)a[i].first.x * indexX, (float)a[i].first.y * indexY), newWidth, newHeight);
 }
 
-cPoint cPoints::operator[] (int index)
+cPoint cPoints::operator[] (size_t index)
 {
 	return a[index].second;
 }
