@@ -10,26 +10,32 @@
 #include "cpoints.h"
 #include "cpoint.h"
 
-void cPoints::set_calc_rule (bool isSided, bool isRightTurn)
-{
-	sided = (isSided) ? (1) : (-1);
-	rightTurn = (isRightTurn) ? (1) : (-1);
-		
-	calc();
-}
-
 void cPoints::calc ()
 {
 	for (size_t i = 1, size = a.size(); i < size; ++i)
 		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
 			swap(a[0], a[i]);
 
-	int currRightTurn = rightTurn;
-
-	for (size_t i = 1, size = a.size(); i < size - 1; ++i, currRightTurn *= sided)
+	for (size_t i = 1, size = a.size(); i < size - 1; ++i)
+	{
+		size_t leftmost, rightmost;
+		
+		leftmost = rightmost = i;
+		
 		for (size_t j = i + 1; j < size; ++j)
-			if (a[j].first.point_position(a[i - 1].first, a[i].first) == currRightTurn)
-				swap(a[i], a[j]);
+		{
+			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1)
+				rightmost = j;
+
+			if (a[j].first.point_position(a[i - 1].first, a[leftmost].first) == 1)
+				leftmost = j;
+		}
+		
+		if (a[i].first.length_to(a[leftmost].first) < a[i].first.length_to(a[rightmost].first))
+			swap(a[i], a[leftmost]);
+		else
+			swap(a[i], a[rightmost]);
+	}
 }
 
 cPoint cPoints::correct_point (cPoint point, int width, int height)
@@ -110,7 +116,6 @@ void cPoints::clear ()
 
 cPoints::cPoints ()
 {
-	sided = rightTurn = 1;
 }
 
 int cPoints::size ()
@@ -118,18 +123,40 @@ int cPoints::size ()
 	return a.size();
 }
 
-void cPoints::push (cPoints points)
+CPOINTS_PUSH cPoints::push (cPoints points)
 {
+	bool ok = true;
+
 	for (size_t i = 0; i < points.a.size(); ++i)
+	{
+		for (size_t j = 0, size = a.size(); i < size; ++i)
+			if (i != j && a[i].first.length_to(points.a[i].first) < minLength)
+			{
+				ok = false;
+				break;
+			}
+	
 		a.push_back(points.a[i]);
-		
+	}
+	
 	calc();
+	
+	return (ok) ? (CPOINTS_PUSH_OK) : (CPOINTS_PUSH_NOT_ALL);
 }
 
-void cPoints::push (int x, int y, int width, int height)
+CPOINTS_PUSH cPoints::push (int x, int y, int width, int height)
 {
-	a.push_back(std::make_pair(cPoint((float)x / (float)width * infelicity, (float)y / (float)height * infelicity), correct_point(cPoint(x, y), width, height)));
+	cPoint temp((float)x / (float)width * infelicity, (float)y / (float)height * infelicity);
+	
+	for (size_t i = 0, size = a.size(); i < size; ++i)
+		if (a[i].first.length_to(temp) < minLength)
+			return CPOINTS_PUSH_NO_SPACE;
+
+	a.push_back(std::make_pair(temp, correct_point(cPoint(x, y), width, height)));
+
 	calc();
+	
+	return CPOINTS_PUSH_OK;
 }
 
 void cPoints::correct (int newWidth, int newHeight)

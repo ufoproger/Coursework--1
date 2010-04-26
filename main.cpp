@@ -3,6 +3,7 @@
 
 #include <gtkmm.h>
 
+#include "defines.h"
 #include "cpoints.h"
 #include "cpoint.h"
 
@@ -14,18 +15,9 @@ Gtk::Window * pWindow;
 Gtk::ImageMenuItem * pIMI1; // Пункт меню "Открыть"
 Gtk::ImageMenuItem * pIMI2; // Пункт меню "Сохранить"
 Gtk::ImageMenuItem * pIMI6; // Пункт меню "Очистить"
-Gtk::RadioMenuItem * pRMI1; // Радиопункт меню "Спираль справа"
-Gtk::RadioMenuItem * pRMI2; // Радиопункт меню "Спираль слева"
-Gtk::RadioMenuItem * pRMI3; // Радиопункт меню "Пульс справа"
-Gtk::RadioMenuItem * pRMI4; // Радиопункт меню "Пульс слева"
-
 bool pIMI1_on_button_press_event (GdkEventButton*);
 bool pIMI2_on_button_press_event (GdkEventButton*);
 bool pIMI6_on_button_press_event (GdkEventButton*);
-bool pRMI1_on_button_press_event (GdkEventButton*);
-bool pRMI2_on_button_press_event (GdkEventButton*);
-bool pRMI3_on_button_press_event (GdkEventButton*);
-bool pRMI4_on_button_press_event (GdkEventButton*);
 bool pDA1_on_button_press_event (GdkEventButton*);
 bool pDA1_on_expose_event(GdkEventExpose*);
 
@@ -54,54 +46,10 @@ int main (int argc, char *argv[])
 	
 	refBuilder->get_widget("imagemenuitem6", pIMI6);
 	pIMI6->signal_button_press_event().connect(sigc::ptr_fun(pIMI6_on_button_press_event));
-	
-	refBuilder->get_widget("radiomenuitem1", pRMI1);
-	pRMI1->signal_button_press_event().connect(sigc::ptr_fun(pRMI1_on_button_press_event));	
-
-	refBuilder->get_widget("radiomenuitem2", pRMI2);
-	pRMI2->signal_button_press_event().connect(sigc::ptr_fun(pRMI2_on_button_press_event));	
-
-	refBuilder->get_widget("radiomenuitem3", pRMI3);
-	pRMI3->signal_button_press_event().connect(sigc::ptr_fun(pRMI3_on_button_press_event));	
-	
-	refBuilder->get_widget("radiomenuitem4", pRMI4);
-	pRMI4->signal_button_press_event().connect(sigc::ptr_fun(pRMI4_on_button_press_event));	
 
 	kit.run(*pWindow);
 
 	return 0;
-}
-
-bool pRMI1_on_button_press_event (GdkEventButton * event)
-{
-	points.set_calc_rule(true, true);
-	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-	pSB1->push(Glib::ustring::compose("Выбран алгоритм построения ломаной \"%1\"", pRMI1->get_label()));
-	return true;
-}
-
-bool pRMI2_on_button_press_event (GdkEventButton * event)
-{
-	points.set_calc_rule(true, false);
-	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-	pSB1->push(Glib::ustring::compose("Выбран алгоритм построения ломаной \"%1\"", pRMI2->get_label()));
-	return true;
-}
-
-bool pRMI3_on_button_press_event (GdkEventButton * event)
-{
-	points.set_calc_rule(false, true);
-	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-	pSB1->push(Glib::ustring::compose("Выбран алгоритм построения ломаной \"%1\"", pRMI3->get_label()));
-	return true;
-}
-
-bool pRMI4_on_button_press_event (GdkEventButton * event)
-{
-	points.set_calc_rule(false, false);
-	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-	pSB1->push(Glib::ustring::compose("Выбран алгоритм построения ломаной \"%1\"", pRMI4->get_label()));
-	return true;
 }
 
 bool pDA1_on_expose_event(GdkEventExpose * event)
@@ -144,10 +92,18 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 {
 	if (event->button == 1 && event->type == GDK_BUTTON_PRESS)
 	{
-		points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height());
+		switch (points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height()))
+		{
+			case CPOINTS_PUSH_OK:		
+				pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
+				break;
+			
+			case CPOINTS_PUSH_NO_SPACE:
+				pSB1->push(Glib::ustring("Нельзя размещать точки так близко друг к другу"));
+				break;				
+		}
+
 		pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-//		pSB1->push(Glib::ustring::compose("Точка с координатами (%1, %2) добавлена на плоскость", event->x, event->y));
-		pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
 	}
 	
 	return true;
@@ -191,7 +147,16 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 				{
 					case(Gtk::RESPONSE_YES):
 					{
-						points.push(newPoints);
+						switch (points.push(newPoints))
+						{
+							case CPOINTS_PUSH_OK:				
+								pSB1->push(Glib::ustring("Все точки добавлены на плоскость"));
+								break;
+								
+							case CPOINTS_PUSH_NOT_ALL:				
+								pSB1->push(Glib::ustring("Не все точки добавлены на плоскость"));
+								break;
+						}
 						break;
 					}
 					case(Gtk::RESPONSE_NO):
