@@ -30,6 +30,7 @@ class cPoints
 		std::vector < std::pair < cPoint , cPoint > > a;
 		
 		cPoint correct_point (cPoint, int, int);
+		bool test_segment_vicinity (cPoint, cPoint);
 };
 
 #endif
