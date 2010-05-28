@@ -3,8 +3,6 @@
 
 #include "cpoint.h"
 
-using namespace std;
-
 cPoint::cPoint () {}
 
 bool cPoint::operator== (cPoint a)
@@ -12,7 +10,7 @@ bool cPoint::operator== (cPoint a)
 	return (x == a.x && y == a.y);
 }
 
-ostream& operator<< (ostream & out, cPoint a)
+std::ostream& operator<< (std::ostream &out, cPoint a)
 {
 	out << "(" << a.x << ", " << a.y << ")";
 	
@@ -40,7 +38,7 @@ float cPoint::length_to (cPoint a, cPoint b)
 {
 	float t;
 	
-	if ((((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) * ((x - b.x) * (b.x - a.x) + (y - b.y) * (b.y - a.y)) > 0))
+	if (((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) * ((x - b.x) * (b.x - a.x) + (y - b.y) * (b.y - a.y)) > 0)
 	{
 		float w = pow(x - b.x, 2) + pow(y - b.y, 2);
 		t = pow(x - a.x, 2) + pow(y - a.y, 2);

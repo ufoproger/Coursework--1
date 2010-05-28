@@ -9,26 +9,30 @@
 #include "cpoint.h"
 
 cPoints points;
-std::vector < bool > pointsColor;
 
-Gtk::DrawingArea * pDA1;
-Gtk::Statusbar * pSB1;
-Gtk::Window * pWindow;
-Gtk::ImageMenuItem * pIMI1; // Пункт меню "Открыть"
-Gtk::ImageMenuItem * pIMI2; // Пункт меню "Сохранить"
-Gtk::MenuItem * pMI3; //
-Gtk::MenuItem * pMI4;
-Gtk::MenuItem * pMI5;
-Gtk::ImageMenuItem * pIMI6; // Пункт меню "Очистить"
-Gtk::Menu * pM3;
+Gtk::ImageMenuItem *pIMI1; // Пункт меню "Открыть"
+Gtk::ImageMenuItem *pIMI2; // Пункт меню "Сохранить"
+Gtk::ImageMenuItem *pIMI3; // Пункт меню "О программе"
+Gtk::ImageMenuItem *pIMI6; // Пункт меню "Очистить"
+Gtk::AboutDialog *pAD1;
+Gtk::DrawingArea *pDA1;
+Gtk::Statusbar *pSB1;
+Gtk::MenuItem *pMI3; // Пункт контекстного меню "Выделить всё"
+Gtk::MenuItem *pMI4; // Пункт контекстного меню "Снять выделение"
+Gtk::MenuItem *pMI5; // Пункт контекстного меню "Удалить выделенное"
+Gtk::Window *pWindow;
+Gtk::Menu *pM3;
 bool pIMI1_on_button_press_event (GdkEventButton*);
 bool pIMI2_on_button_press_event (GdkEventButton*);
+bool pIMI3_on_button_press_event (GdkEventButton*);
 bool pIMI6_on_button_press_event (GdkEventButton*);
 bool pMI3_on_button_press_event (GdkEventButton*);
 bool pMI4_on_button_press_event (GdkEventButton*);
 bool pMI5_on_button_press_event (GdkEventButton*);
 bool pDA1_on_button_press_event (GdkEventButton*);
 bool pDA1_on_expose_event(GdkEventExpose*);
+void pAD1_on_about_dialog_response (int);
+
 
 int main (int argc, char *argv[])
 {
@@ -39,7 +43,8 @@ int main (int argc, char *argv[])
 
 	refBuilder->get_widget("window1", pWindow);
 	pWindow->set_default_size(400, 400);
-
+	pWindow->set_title(Glib::ustring("Курсовая работа"));
+	
 	refBuilder->get_widget("drawingarea1", pDA1);
 	pDA1->set_events(Gdk::BUTTON_PRESS_MASK);
 	pDA1->signal_expose_event().connect(sigc::ptr_fun(pDA1_on_expose_event));
@@ -61,16 +66,29 @@ int main (int argc, char *argv[])
 	
 	refBuilder->get_widget("menuitem5", pMI5);
 	pMI5->signal_button_press_event().connect(sigc::ptr_fun(pMI5_on_button_press_event));
+
+	refBuilder->get_widget("imagemenuitem3", pIMI3);
+	pIMI3->signal_button_press_event().connect(sigc::ptr_fun(pIMI3_on_button_press_event));
 	
 	refBuilder->get_widget("imagemenuitem6", pIMI6);
 	pIMI6->signal_button_press_event().connect(sigc::ptr_fun(pIMI6_on_button_press_event));
 
+	refBuilder->get_widget("aboutdialog1", pAD1);
+	pAD1->signal_response().connect(sigc::ptr_fun(pAD1_on_about_dialog_response));
+
 	refBuilder->get_widget("menu3", pM3);
 
+	pSB1->push("Разместите точки на плоскости!");
 
 	kit.run(*pWindow);
 
 	return 0;
+}
+
+void pAD1_on_about_dialog_response (int response)
+{
+	if (response == Gtk::RESPONSE_CLOSE || response == Gtk::RESPONSE_CANCEL)
+		pAD1->hide();
 }
 
 bool pDA1_on_expose_event(GdkEventExpose * event)
@@ -154,6 +172,13 @@ bool pIMI6_on_button_press_event (GdkEventButton * event)
 	points.clear();
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
 	pSB1->push("Плоскость очищена от точек ломаной");
+
+	return true;
+}
+
+bool pIMI3_on_button_press_event (GdkEventButton * event)
+{
+	pAD1->run();
 
 	return true;
 }
@@ -245,7 +270,8 @@ bool pIMI2_on_button_press_event (GdkEventButton * event)
 bool pMI3_on_button_press_event (GdkEventButton * event)
 {
 	points.mark_all_points(CMARKEDPOINT_FLAG_SELECT);
-		
+
+	pSB1->push(Glib::ustring("Выделены все точки ломаной"));
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;
@@ -254,7 +280,8 @@ bool pMI3_on_button_press_event (GdkEventButton * event)
 bool pMI4_on_button_press_event (GdkEventButton * event)
 {
 	points.mark_all_points(CMARKEDPOINT_FLAG_NO_SELECT);
-		
+	
+	pSB1->push(Glib::ustring("Выделение со всех точек ломаной снято"));		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;
@@ -263,7 +290,8 @@ bool pMI4_on_button_press_event (GdkEventButton * event)
 bool pMI5_on_button_press_event (GdkEventButton * event)
 {
 	points.delete_marked_points(CMARKEDPOINT_FLAG_SELECT);
-		
+
+	pSB1->push(Glib::ustring("Выделенные точки ломаной удалены"));		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;

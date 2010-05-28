@@ -2,10 +2,9 @@
 #define CMARKEDPOINT_H
 
 #include <iostream>
+
 #include "defines.h"
 #include "cpoint.h"
-
-using namespace std;
 
 class cMarkedPoint: public cPoint
 {
@@ -13,24 +12,14 @@ class cMarkedPoint: public cPoint
 		cMarkedPoint ();
 		cMarkedPoint (int, int);
 		cMarkedPoint (int, int, CMARKEDPOINT_FLAG);
-		void set_flag (CMARKEDPOINT_FLAG);
+
 		CMARKEDPOINT_FLAG get_flag ();
-		friend ostream& operator<< (ostream &, cMarkedPoint);
+		void set_flag (CMARKEDPOINT_FLAG);
+
+		friend std::ostream& operator<< (std::ostream &, cMarkedPoint);
 
 	private:
-		CMARKEDPOINT_FLAG state;		
-/*	public:
-		cPoint ();
-		cPoint (int, int);
-		float length_to (cPoint);
-		float length_to (cPoint, cPoint);
-		int point_position (cPoint, cPoint);
-		bool operator== (cPoint);
-		friend ostream& operator<< (ostream&, cPoint);
-
-		int x;
-		int y;
-*/
+		CMARKEDPOINT_FLAG state;
 };
 
 #endif

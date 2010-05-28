@@ -3,21 +3,21 @@
 
 #include <iostream>
 
-using namespace std;
-
 class cPoint
 {
 	public:
+		int x;
+		int y;
+
 		cPoint ();
 		cPoint (int, int);
+
 		float length_to (cPoint);
 		float length_to (cPoint, cPoint);
 		int point_position (cPoint, cPoint);
 		bool operator== (cPoint);
-		friend ostream& operator<< (ostream&, cPoint);
 
-		int x;
-		int y;
+		friend std::ostream& operator<< (std::ostream&, cPoint);
 };
 
 #endif

@@ -10,8 +10,6 @@
 #include "cpoints.h"
 #include "cpoint.h"
 
-using namespace std;
-
 size_t cPoints::search_click_point (int x, int y)
 {
 	cPoint temp(x, y);
@@ -45,12 +43,12 @@ void cPoints::delete_marked_points (CMARKEDPOINT_FLAG state)
 	}
 }
 
-ostream& operator<< (ostream & out, cPoints a)
+std::ostream& operator<< (std::ostream & out, cPoints a)
 {
 	for (size_t i = 0, size = a.size(); i < size; ++i)
 		out << a.a[i].second << " ";
 		
-	out << endl;
+	out << std::endl;
  
 	return out;
 }
@@ -163,7 +161,7 @@ bool cPoints::make_sequence (tpPointsArray source, tpPointsArray result)
 	return false;
 }
 
-void cPoints::calc_r ()
+void cPoints::calc ()
 {
 	tpPointsArray temp = a;
 	
@@ -171,65 +169,6 @@ void cPoints::calc_r ()
 	
 	if (!f)
 		a = temp;
-}
-
-void cPoints::calc ()
-{
-	for (size_t i = 1, size = a.size(); i < size; ++i)
-		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
-			swap(a[0], a[i]);
-
-	for (size_t i = 1, size = a.size(); i < size - 1; ++i)
-	{
-		size_t rightmost = i;
-
-		for (size_t j = i + 1; j < size; ++j)
-		{
-			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1)
-				rightmost = j;
-		}
-			swap(a[i], a[rightmost]);
-	}
-	
-	vector < cPoint > b;
-
-	for (bool f = true; f; )
-	{
-		f = false;
-		
-		for (size_t i = 0, size = a.size(); i < size; ++i)
-		{
-			
-			for (size_t j = 0; j < size - 1; ++j)
-			{
-				if (i == j || i == j + 1)
-					continue;
-					
-				if (a[i].first.length_to(a[j].first, a[j + 1].first) < 20.0 && find(b.begin(), b.end(), a[j].first) == b.end() && find(b.begin(), b.end(), a[j + 1].first) == b.end() && find(b.begin(), b.end(), a[i].first) == b.end())
-				{
-					b.push_back(a[i].first);
-
-					tpPointsArray temp = a;
-				
-					if (i < j)
-					{
-						a.insert(a.begin() + j + 1, a[i]);
-						a.erase(a.begin() + i);
-					}
-					else
-					{
-						a.insert(a.begin() + j + 1, a[i]);
-						a.erase(a.begin() + i + 1);
-					}
-					
-					if (!(f = test_crossing_lines()))
-						a = temp;
-
-					break;
-				}
-			}
-		}
-	}
 }
 
 cMarkedPoint cPoints::correct_point (cMarkedPoint point, int width, int height)
@@ -321,7 +260,7 @@ void cPoints::clear ()
 
 cPoints::cPoints () {}
 
-int cPoints::size ()
+size_t cPoints::size ()
 {
 	return a.size();
 }
@@ -332,24 +271,13 @@ CPOINTS_PUSH cPoints::push (cPoints points)
 
 	for (size_t i = 0; i < points.a.size(); ++i)
 	{
-/*		for (size_t j = 0, size = a.size(); i < size; ++i)
-			if (i != j && a[i].first.length_to(points.a[j].first) < minLength)
-			{
-				ok = false;
-				break;
-			}
-	
-*/
 		if (test_min_length_to_point(points.a[i].first))
 			a.push_back(points.a[i]);
 		else
 			ok = false;
 	}
 	
-	if (is_calc_r)
-		calc_r();
-	else
-		calc();
+	calc();
 	
 	return (ok) ? (CPOINTS_PUSH_OK) : (CPOINTS_PUSH_NOT_ALL);
 }
@@ -365,10 +293,7 @@ CPOINTS_PUSH cPoints::push (int x, int y, int width, int height)
 		a.push_back(std::make_pair(temp, correct_point(cMarkedPoint(x, y), width, height)));
 
 	
-	if (is_calc_r)
-		calc_r();
-	else
-		calc();
+	calc();
 	
 	
 	return CPOINTS_PUSH_OK;
