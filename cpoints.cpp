@@ -12,22 +12,165 @@
 
 using namespace std;
 
-bool cPoints::test_segment_vicinity (cPoint begin, cPoint end)
+size_t cPoints::search_click_point (int x, int y)
+{
+	cPoint temp(x, y);
+
+	for (size_t i = 0, size = a.size(); i < size; ++i)
+		if (a[i].second.length_to(temp) < 7.0)
+			return (i + 1);
+
+	return 0;
+}
+
+void cPoints::mark_all_points (CMARKEDPOINT_FLAG state)
 {
 	for (size_t i = 0, size = a.size(); i < size; ++i)
+		a[i].second.set_flag(state);
+}
+
+void cPoints::delete_marked_points (CMARKEDPOINT_FLAG state)
+{
+	for (bool ok = true; ok;)
 	{
-//		std::cout << "test: " << begin.x << ", " << begin.y << " & " << end.x << ", " << end.y << " && " << a[i].first.x << ", " << a[i].first.y << " :: " << a[i].first.length_to(begin, end) << std::endl;
-		if (!(a[i].first == begin || a[i].first == end) && a[i].first.length_to(begin, end) < 10)
-			return false;
-	}
-	
-	for (size_t i = 0, size = a.size(); i < size; ++i)
-		std::cout << "!" << a[i].first.x << ", " << a[i].first.y << " ";
+		ok = false;
 		
-	std::cout << std::endl;
-	std::cout << "test: " << begin.x << ", " << begin.y << " & " << end.x << ", " << end.y << std::endl;
+		for (size_t i = 0, size = a.size(); i < size; ++i)
+			if (a[i].second.get_flag() == state)
+			{
+				a.erase(a.begin() + i);
+				ok = true;
+				break;
+			}
+	}
+}
+
+ostream& operator<< (ostream & out, cPoints a)
+{
+	for (size_t i = 0, size = a.size(); i < size; ++i)
+		out << a.a[i].second << " ";
+		
+	out << endl;
+ 
+	return out;
+}
+
+template < typename T >
+bool in_range (T x, T l, T r)
+{
+	return (l <= x && x <= r);	
+}
+
+bool crossing (cPoint point11, cPoint point12, cPoint point21, cPoint point22)
+{
+    double denominator = (point12.y - point11.y) * (point21.x - point22.x) - (point21.y - point22.y) * (point12.x - point11.x);
+    double numeratorA = (point12.y - point11.y) * (point21.x - point11.x) - (point21.y - point11.y) * (point12.x - point11.x);
+    double numeratorB = (point21.y - point11.y) * (point21.x - point22.x) - (point21.y - point22.y) * (point21.x - point11.x);
+
+    if(!denominator)
+    	return (!numeratorA && !numeratorB);
+
+	return (in_range(numeratorA/denominator, 0.0, 1.0) && in_range(numeratorB/denominator, 0.0, 1.0));
+}
+
+bool cPoints::test_crossing_lines ()
+{
+	for (size_t i = 1, size = a.size(); i + 2 < size; ++i)
+		for (size_t j = i + 2; j < size; ++j)
+			if (crossing(a[i - 1].first, a[i].first, a[j - 1].first, a[j].first))
+				return false;
+				
+	return true;
+}
+
+bool cPoints::test_min_length_to_segment (cPoint point)
+{
+	for (size_t i = 1, size = a.size(); i < size; ++i)
+		if (point.length_to(a[i - 1].first, a[i].first) < minLength)
+			return false;
 	
 	return true;
+}
+
+bool cPoints::test_min_length_to_point (cPoint point)
+{
+	for (size_t i = 0, size = a.size(); i < size; ++i)
+		if (point.length_to(a[i].first) < minLength)
+			return false;
+			
+	return true;
+}
+
+bool cPoints::make_sequence (tpPointsArray source, tpPointsArray result)
+{
+	if (source.empty())
+	{
+		a = result;
+
+		if (!test_crossing_lines())
+			return false;
+
+		for (size_t i = 0, size = a.size(); i < size; ++i)
+		{
+			for (size_t j = 0; j < size; ++j)
+				if (i != j && a[i].first.length_to(a[j].first) < minLength)
+					return false;
+					
+			for (size_t j = 1; j < size; ++j)
+				if (i != j && i != j - 1 && a[i].first.length_to(a[j].first, a[j - 1].first) < minLength)
+					return false;							
+		}
+
+		return true;		
+	}
+
+	for (size_t k = 0, size = source.size(); k < size; ++k)
+	{
+		tpPointsArray temp = source;
+
+		result.push_back(temp[k]);	
+		temp.erase(temp.begin() + k);
+
+		a = result;
+
+		if (!test_crossing_lines())
+			continue;
+
+		bool ok = true;
+
+		for (size_t i = 0, size = a.size(); i < size; ++i)
+		{
+			for (size_t j = 0; j < size && ok; ++j)
+				if (i != j && a[i].first.length_to(a[j].first) < minLength)
+					ok = false;
+		
+			for (size_t j = 1; j < size && ok; ++j)
+				if (i != j && i != j - 1 && a[i].first.length_to(a[j].first, a[j - 1].first) < minLength)
+					ok = false;
+		}
+		
+		if (!ok)
+			continue;
+			
+		bool f = make_sequence(temp, result);
+		
+		result.pop_back();
+
+		if (f)
+			return true;
+	}
+	
+	return false;
+}
+
+void cPoints::calc_r ()
+{
+	tpPointsArray temp = a;
+	
+	bool f = make_sequence(a, tpPointsArray());
+	
+	if (!f)
+		a = temp;
 }
 
 void cPoints::calc ()
@@ -36,167 +179,60 @@ void cPoints::calc ()
 		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
 			swap(a[0], a[i]);
 
-	std::cout << "size: " << a.size() << endl;
-	
 	for (size_t i = 1, size = a.size(); i < size - 1; ++i)
 	{
-		size_t rightmost = i, leftmost = i;
+		size_t rightmost = i;
 
 		for (size_t j = i + 1; j < size; ++j)
 		{
 			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1)
 				rightmost = j;
-	/*
-			if (a[j].first.point_position(a[i - 1].first, a[leftmost].first) == 1)
-				leftmost = j;
-		*/		
-		 
-			
-//			if (a[i - 1].first.length_to(a[j].first) < a[i - 1].first.length_to(a[i].first))
-//			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1)
-			{
-/*				bool ok = true;
-				for (size_t k = i + 1; k < size; ++k)
-				{
-					cout << a[k].first.length_to(a[i - 1].first, a[j].first)  << endl;
-					if (a[k].first.length_to(a[i - 1].first, a[j].first) < 10)
-					{
-						ok = false;
-					}
-				}
-
-				if (ok)
-	*/		//		rightmost = j;
-			}
 		}
-		
-//		if (a[i - 1].first.length_to(a[rightmost].first) < a[i - 1].first.length_to(a[leftmost].first))
-		
 			swap(a[i], a[rightmost]);
-			
-//	else
-//		swap(a[i], a[leftmost]);	
-
-
-
-
-
-
-
-
-/*
-
-		size_t leftmost, rightmost;
-		
-		leftmost = rightmost = i;
-		bool left = false, right = false;
-
-		for (size_t j = i + 1; j < size; ++j)
-			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1 && (right |= test_segment_vicinity(a[i - 1].first, a[rightmost].first)))
-				rightmost = j;
-		
-		if (test_segment_vicinity(a[i - 1].first, a[rightmost].first))
-			swap(a[i], a[rightmost]);
-		else
-			for (size_t j = 0, size = a.size(); i < size; ++i)
-		std::cout << "test: " << begin.x << ", " << begin.y << " & " << end.x << ", " << end.y << " && " << a[i].first.x << ", " << a[i].first.y << " :: " << a[i].first.length_to(begin, end) << std::endl;
-				if (!(a[j].first == a[i - 1].first || a[i].first == a[rightmost].first) && a[j].first.length_to(a[i - 1].first, a[rightmost].first) < 10)	
-				{
-					swap(a[i], a[j]);
-					swap(a[i + 1], a[rightmost]);
-					++i;
-					break;
-				}
-		
-		*/
-//		if (right)
-/*		else
-		{
-			for (size_t j = i + 1; j < size; ++j)
-			{
-				if (a[j].first.point_position(a[i - 1].first, a[leftmost].first) == 1 && (left |= test_segment_vicinity(a[i - 1].first, a[leftmost].first)))
-					leftmost = j;
-			}
-			
-			swap(a[i], a[leftmost]);
-		}
-	*/	
-/*		
-			if (a[j].first.point_position(a[i - 1].first, a[leftmost].first) == 1 && (left |= test_segment_vicinity(a[i - 1].first, a[leftmost].first)))
-				leftmost = j;
-}				
-			if (!right)
-			{
-				if (left)
-				{
-						swap(a[i], a[leftmost]);
-					
-				}
-				else
-				{
-					if (a[i].first.length_to(a[leftmost].first) < a[i].first.length_to(a[rightmost].first))
-						swap(a[i], a[leftmost]);
-					else
-						swap(a[i], a[rightmost]);
-				}
-			}
-			else
-			{
-				if (!left)
-				{
-						swap(a[i], a[rightmost]);
-				
-				}
-				else
-				{					if (a[i].first.length_to(a[leftmost].first) < a[i].first.length_to(a[rightmost].first))
-						swap(a[i], a[leftmost]);
-					else
-						swap(a[i], a[rightmost]);
-}
-			}
-	*/
-/*		if (a[i].first.length_to(a[leftmost].first) < a[i].first.length_to(a[rightmost].first))
-			swap(a[i], a[leftmost]);
-		else
-			swap(a[i], a[rightmost]);
-*/	}
-/*
-	for (size_t i = 1, size = a.size(); i < size; ++i)
-	{
-		for (size_t j = 1; j <
 	}
-*/
-/*
-	for (bool f = true; f;)
+	
+	vector < cPoint > b;
+
+	for (bool f = true; f; )
 	{
 		f = false;
-		for (size_t i = 1, size = a.size(); i < size; ++i)
+		
+		for (size_t i = 0, size = a.size(); i < size; ++i)
 		{
-			for (size_t j = 1; j < size; ++j)
+			
+			for (size_t j = 0; j < size - 1; ++j)
 			{
-				if (i == j || i - 1 == j)
+				if (i == j || i == j + 1)
 					continue;
 					
-				if (a[j].first.length_to(a[i - 1].first, a[i].first) < 10)
+				if (a[i].first.length_to(a[j].first, a[j + 1].first) < 20.0 && find(b.begin(), b.end(), a[j].first) == b.end() && find(b.begin(), b.end(), a[j + 1].first) == b.end() && find(b.begin(), b.end(), a[i].first) == b.end())
 				{
-					a.insert(a.begin() + i - 1, a[j]);
-					cout << "i = " << i << ", j = " << j << endl;
-					a.erase(a.begin() + j);
-					f = true;
+					b.push_back(a[i].first);
+
+					tpPointsArray temp = a;
+				
+					if (i < j)
+					{
+						a.insert(a.begin() + j + 1, a[i]);
+						a.erase(a.begin() + i);
+					}
+					else
+					{
+						a.insert(a.begin() + j + 1, a[i]);
+						a.erase(a.begin() + i + 1);
+					}
 					
+					if (!(f = test_crossing_lines()))
+						a = temp;
+
 					break;
 				}
 			}
-			
-			if (f)
-				break;
 		}
-		
 	}
-*/	
 }
 
-cPoint cPoints::correct_point (cPoint point, int width, int height)
+cMarkedPoint cPoints::correct_point (cMarkedPoint point, int width, int height)
 {
 	point.x = std::max(std::min(point.x, width - minTab), (int)minTab);
 	point.y = std::max(std::min(point.y, height - minTab), (int)minTab);
@@ -219,6 +255,16 @@ bool cPoints::save_to_file (Glib::ustring filename)
 	return true;
 }
 
+bool cPoints::mark_point (int x, int y, CMARKEDPOINT_FLAG state)
+{
+	size_t i;
+	
+	if (i = search_click_point(x, y))
+		a[i - 1].second.set_flag(state);
+
+	return i;
+}
+
 int cPoints::read_from_file (Glib::ustring filename)
 {
 	std::ifstream fin(filename.c_str());
@@ -229,7 +275,7 @@ int cPoints::read_from_file (Glib::ustring filename)
 	int count = 0;
 	
 	for (float x, y; fin >> x >> y;)
-		a.push_back(std::make_pair(cPoint(0, 0), cPoint(x, y)));
+		a.push_back(std::make_pair(cPoint(0, 0), cMarkedPoint(x, y)));
 	
 	if (a.size() == 0)
 		return 0;
@@ -286,17 +332,24 @@ CPOINTS_PUSH cPoints::push (cPoints points)
 
 	for (size_t i = 0; i < points.a.size(); ++i)
 	{
-		for (size_t j = 0, size = a.size(); i < size; ++i)
-			if (i != j && a[i].first.length_to(points.a[i].first) < minLength)
+/*		for (size_t j = 0, size = a.size(); i < size; ++i)
+			if (i != j && a[i].first.length_to(points.a[j].first) < minLength)
 			{
 				ok = false;
 				break;
 			}
 	
-		a.push_back(points.a[i]);
+*/
+		if (test_min_length_to_point(points.a[i].first))
+			a.push_back(points.a[i]);
+		else
+			ok = false;
 	}
 	
-	calc();
+	if (is_calc_r)
+		calc_r();
+	else
+		calc();
 	
 	return (ok) ? (CPOINTS_PUSH_OK) : (CPOINTS_PUSH_NOT_ALL);
 }
@@ -309,9 +362,14 @@ CPOINTS_PUSH cPoints::push (int x, int y, int width, int height)
 		if (a[i].first.length_to(temp) < minLength)
 			return CPOINTS_PUSH_NO_SPACE;
 
-	a.push_back(std::make_pair(temp, correct_point(cPoint(x, y), width, height)));
+		a.push_back(std::make_pair(temp, correct_point(cMarkedPoint(x, y), width, height)));
 
-	calc();
+	
+	if (is_calc_r)
+		calc_r();
+	else
+		calc();
+	
 	
 	return CPOINTS_PUSH_OK;
 }
@@ -322,10 +380,10 @@ void cPoints::correct (int newWidth, int newHeight)
 	float indexY = (float)newHeight/infelicity;
 
 	for (size_t i = 0; i < a.size(); ++i)
-		a[i].second = correct_point(cPoint((float)a[i].first.x * indexX, (float)a[i].first.y * indexY), newWidth, newHeight);
+		a[i].second = correct_point(cMarkedPoint((float)a[i].first.x * indexX, (float)a[i].first.y * indexY, a[i].second.get_flag()), newWidth, newHeight);
 }
 
-cPoint cPoints::operator[] (size_t index)
+cMarkedPoint& cPoints::operator[] (size_t index)
 {
 	return a[index].second;
 }

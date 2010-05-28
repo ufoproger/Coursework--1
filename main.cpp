@@ -3,21 +3,30 @@
 
 #include <gtkmm.h>
 
+#include "cmarkedpoint.h"
 #include "defines.h"
 #include "cpoints.h"
 #include "cpoint.h"
 
 cPoints points;
+std::vector < bool > pointsColor;
 
 Gtk::DrawingArea * pDA1;
 Gtk::Statusbar * pSB1;
 Gtk::Window * pWindow;
 Gtk::ImageMenuItem * pIMI1; // Пункт меню "Открыть"
 Gtk::ImageMenuItem * pIMI2; // Пункт меню "Сохранить"
+Gtk::MenuItem * pMI3; //
+Gtk::MenuItem * pMI4;
+Gtk::MenuItem * pMI5;
 Gtk::ImageMenuItem * pIMI6; // Пункт меню "Очистить"
+Gtk::Menu * pM3;
 bool pIMI1_on_button_press_event (GdkEventButton*);
 bool pIMI2_on_button_press_event (GdkEventButton*);
 bool pIMI6_on_button_press_event (GdkEventButton*);
+bool pMI3_on_button_press_event (GdkEventButton*);
+bool pMI4_on_button_press_event (GdkEventButton*);
+bool pMI5_on_button_press_event (GdkEventButton*);
 bool pDA1_on_button_press_event (GdkEventButton*);
 bool pDA1_on_expose_event(GdkEventExpose*);
 
@@ -44,8 +53,20 @@ int main (int argc, char *argv[])
 	refBuilder->get_widget("imagemenuitem2", pIMI2);
 	pIMI2->signal_button_press_event().connect(sigc::ptr_fun(pIMI2_on_button_press_event));
 	
+	refBuilder->get_widget("menuitem3", pMI3);
+	pMI3->signal_button_press_event().connect(sigc::ptr_fun(pMI3_on_button_press_event));
+	
+	refBuilder->get_widget("menuitem4", pMI4);
+	pMI4->signal_button_press_event().connect(sigc::ptr_fun(pMI4_on_button_press_event));
+	
+	refBuilder->get_widget("menuitem5", pMI5);
+	pMI5->signal_button_press_event().connect(sigc::ptr_fun(pMI5_on_button_press_event));
+	
 	refBuilder->get_widget("imagemenuitem6", pIMI6);
 	pIMI6->signal_button_press_event().connect(sigc::ptr_fun(pIMI6_on_button_press_event));
+
+	refBuilder->get_widget("menu3", pM3);
+
 
 	kit.run(*pWindow);
 
@@ -73,16 +94,26 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 			cr->stroke();
 		}
 		
-		cr->set_source_rgb(0.0, 0.0, 0.0);
 		cr->set_line_width(9.0);
 		
 		for (int i = 0; i < points.size(); ++i)
 		{
+			switch (points[i].get_flag())
+			{
+				case CMARKEDPOINT_FLAG_NO_SELECT:
+					cr->set_source_rgb(0.0, 0.0, 0.0);
+					break;					
+					
+				case CMARKEDPOINT_FLAG_SELECT:
+					cr->set_source_rgb(0.0, 0.0, 0.9);
+					break;					
+			}
+
 			cr->begin_new_sub_path();
 			cr->arc(points[i].x, points[i].y, 0.6, 0, 6.28);
+			
+			cr->stroke();
 		}
-		
-		cr->stroke();		
 	}
 
 	return window;
@@ -90,21 +121,30 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 
 bool pDA1_on_button_press_event (GdkEventButton * event)
 {
-	if (event->button == 1 && event->type == GDK_BUTTON_PRESS)
+	if (event->type == GDK_BUTTON_PRESS)
 	{
-		switch (points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height()))
+		if (event->button == 1)
 		{
-			case CPOINTS_PUSH_OK:		
-				pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
-				break;
+			switch (points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height()))
+			{
+				case CPOINTS_PUSH_OK:		
+					pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
+					break;
 			
-			case CPOINTS_PUSH_NO_SPACE:
-				pSB1->push(Glib::ustring("Нельзя размещать точки так близко друг к другу"));
-				break;				
+				case CPOINTS_PUSH_NO_SPACE:
+					pSB1->push(Glib::ustring("Нельзя размещать точки так близко друг к другу"));
+					break;				
+			}
 		}
-
-		pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
+	
+		if (event->button == 3)
+			if (size_t i = points.search_click_point(event->x, event->y))
+				points[i - 1].set_flag((points[i - 1].get_flag() == CMARKEDPOINT_FLAG_SELECT) ? CMARKEDPOINT_FLAG_NO_SELECT : CMARKEDPOINT_FLAG_SELECT);
+			else
+				pM3->popup(event->button, event->time);			
 	}
+	
+	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
 	
 	return true;
 }
@@ -198,6 +238,33 @@ bool pIMI2_on_button_press_event (GdkEventButton * event)
 			pSB1->push(Glib::ustring::compose("Координаты точек сохранены в файл \"%1\" успешно", dialogFC.get_filename()));
 		else
 			pSB1->push(Glib::ustring::compose("Не удалось сохранить координаты точек в файл \"%1\"", dialogFC.get_filename()));
+
+	return true;
+}
+
+bool pMI3_on_button_press_event (GdkEventButton * event)
+{
+	points.mark_all_points(CMARKEDPOINT_FLAG_SELECT);
+		
+	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
+
+	return true;
+}
+
+bool pMI4_on_button_press_event (GdkEventButton * event)
+{
+	points.mark_all_points(CMARKEDPOINT_FLAG_NO_SELECT);
+		
+	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
+
+	return true;
+}
+
+bool pMI5_on_button_press_event (GdkEventButton * event)
+{
+	points.delete_marked_points(CMARKEDPOINT_FLAG_SELECT);
+		
+	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;
 }
