@@ -15,6 +15,7 @@ class cPoints
 	public:
 		cPoints ();
 		
+//		cPoints& operator= (cPoints &);
 		CPOINTS_PUSH push (int, int, int, int);
 		CPOINTS_PUSH push (cPoints);
 		cMarkedPoint& operator[] (size_t);

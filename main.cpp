@@ -3,25 +3,40 @@
 
 #include <gtkmm.h>
 
+#include "cmodelcolumns.h"
 #include "cmarkedpoint.h"
 #include "defines.h"
 #include "cpoints.h"
 #include "cpoint.h"
 
-cPoints points;
 
-Gtk::ImageMenuItem *pIMI1; // Пункт меню "Открыть"
-Gtk::ImageMenuItem *pIMI2; // Пункт меню "Сохранить"
-Gtk::ImageMenuItem *pIMI3; // Пункт меню "О программе"
-Gtk::ImageMenuItem *pIMI6; // Пункт меню "Очистить"
-Gtk::AboutDialog *pAD1;
-Gtk::DrawingArea *pDA1;
-Gtk::Statusbar *pSB1;
-Gtk::MenuItem *pMI3; // Пункт контекстного меню "Выделить всё"
-Gtk::MenuItem *pMI4; // Пункт контекстного меню "Снять выделение"
-Gtk::MenuItem *pMI5; // Пункт контекстного меню "Удалить выделенное"
-Gtk::Window *pWindow;
-Gtk::Menu *pM3;
+cPoints points[2];
+size_t currPoints;
+
+cModelColumns columns;
+
+Glib::RefPtr<Gtk::ListStore> refTreeModel;
+
+Gtk::ImageMenuItem 	*pIMI1; // Пункт меню "Открыть"
+Gtk::ImageMenuItem 	*pIMI2; // Пункт меню "Сохранить"
+Gtk::ImageMenuItem 	*pIMI3; // Пункт меню "О программе"
+Gtk::ImageMenuItem	*pIMI6; // Пункт меню "Очистить"
+Gtk::AboutDialog	*pAD1;
+Gtk::DrawingArea	*pDA1;
+Gtk::Statusbar		*pSB1;
+Gtk::MenuItem		*pMI3; // Пункт контекстного меню "Выделить всё"
+Gtk::MenuItem		*pMI4; // Пункт контекстного меню "Снять выделение"
+Gtk::MenuItem		*pMI5; // Пункт контекстного меню "Удалить выделенное"
+Gtk::MenuItem		*pMI7;
+Gtk::MenuItem		*pMI8;
+Gtk::TreeView		*pTV1;
+Gtk::Notebook		*pNB1;
+Gtk::Window			*pWindow;
+Gtk::Button			*pB1;
+Gtk::Button			*pB2;
+Gtk::Menu			*pM3;
+Gtk::Menu			*pM5;
+
 bool pIMI1_on_button_press_event (GdkEventButton*);
 bool pIMI2_on_button_press_event (GdkEventButton*);
 bool pIMI3_on_button_press_event (GdkEventButton*);
@@ -29,13 +44,20 @@ bool pIMI6_on_button_press_event (GdkEventButton*);
 bool pMI3_on_button_press_event (GdkEventButton*);
 bool pMI4_on_button_press_event (GdkEventButton*);
 bool pMI5_on_button_press_event (GdkEventButton*);
+bool pMI7_on_button_press_event (GdkEventButton*);
+bool pMI8_on_button_press_event (GdkEventButton*);
 bool pDA1_on_button_press_event (GdkEventButton*);
-bool pDA1_on_expose_event(GdkEventExpose*);
+bool pTV1_on_button_press_event(GdkEventButton*);
+bool pDA1_on_expose_event (GdkEventExpose*);
 void pAD1_on_about_dialog_response (int);
-
+void pB1_on_button_press_event ();
+void pB2_on_button_press_event ();
+void pNB1_on_switch_page (GtkNotebookPage*, guint);
 
 int main (int argc, char *argv[])
 {
+	currPoints = 0;
+
 	Gtk::Main kit(argc, argv);
 	Glib::RefPtr<Gtk::Builder> refBuilder = Gtk::Builder::create();
 
@@ -76,13 +98,95 @@ int main (int argc, char *argv[])
 	refBuilder->get_widget("aboutdialog1", pAD1);
 	pAD1->signal_response().connect(sigc::ptr_fun(pAD1_on_about_dialog_response));
 
+	refBuilder->get_widget("menu5", pM5);
+
+	refBuilder->get_widget("menuitem7", pMI7);
+	pMI7->signal_button_press_event().connect(sigc::ptr_fun(pMI7_on_button_press_event));
+
+	refBuilder->get_widget("menuitem8", pMI8);
+	pMI8->signal_button_press_event().connect(sigc::ptr_fun(pMI8_on_button_press_event));
+
+	refBuilder->get_widget("button1", pB1);
+	pB1->signal_clicked().connect(sigc::ptr_fun(pB1_on_button_press_event));
+
+	refBuilder->get_widget("button2", pB2);
+	pB2->signal_clicked().connect(sigc::ptr_fun(pB2_on_button_press_event));
+
+	refBuilder->get_widget("treeview1", pTV1);
+	pTV1->set_events(Gdk::BUTTON_PRESS_MASK);	
+	pTV1->signal_button_press_event().connect(sigc::ptr_fun(pTV1_on_button_press_event), false);
+	
+	refBuilder->get_widget("notebook1", pNB1);
+	pNB1->signal_switch_page().connect(sigc::ptr_fun(pNB1_on_switch_page));
+
 	refBuilder->get_widget("menu3", pM3);
+		
+	refTreeModel = Gtk::ListStore::create(columns);
+	
+	pTV1->set_model(refTreeModel);
+	pTV1->append_column_editable("Ось абсцисс", columns.columnX);
+	pTV1->append_column_editable("Ось ординат", columns.columnY);
 
 	pSB1->push("Разместите точки на плоскости!");
 
 	kit.run(*pWindow);
 
 	return 0;
+}
+
+bool pTV1_on_button_press_event(GdkEventButton* event)
+{
+	if(event->type == GDK_BUTTON_PRESS && event->button == 3)
+		pM5->popup(event->button, event->time);
+
+	return false;
+}
+
+void pB1_on_button_press_event ()
+{
+	refTreeModel->clear();
+}
+
+void pB2_on_button_press_event ()
+{
+}
+
+bool pMI7_on_button_press_event (GdkEventButton*)
+{
+	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTV1->get_selection();
+
+	if(refSelection)
+	{
+		Gtk::TreeModel::iterator it = refSelection->get_selected();
+
+		if(it)
+			refTreeModel->erase(it);
+	}
+
+	return true;
+}
+
+bool pMI8_on_button_press_event (GdkEventButton*)
+{
+	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTV1->get_selection();
+
+	if(refSelection)
+	{
+		Gtk::TreeModel::iterator it = refSelection->get_selected();
+		Gtk::TreeModel::Row row;
+
+		row = (it) ? *(refTreeModel->insert_after(it)) : *(refTreeModel->append());
+
+		row[columns.columnX] = 0;
+		row[columns.columnY] = 0;
+	}
+
+	return true;
+}
+
+void pNB1_on_switch_page(GtkNotebookPage* page, guint pageNum)
+{
+	currPoints = pageNum;
 }
 
 void pAD1_on_about_dialog_response (int response)
@@ -102,21 +206,21 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 		cr->clip();
 		cr->set_line_width(7.0);
 
-		points.correct(event->area.width, event->area.height);
+		points[currPoints].correct(event->area.width, event->area.height);
 
-		for (int i = 1, color = 0; i < points.size(); ++i, color = (color + 1) % 2)
+		for (int i = 1, color = 0; i < points[currPoints].size(); ++i, color = (color + 1) % 2)
 		{
 			cr->set_source_rgba(0.7 + 0.2 * (float)color, 0.0, 0.0, 0.8);
-			cr->move_to(points[i - 1].x, points[i - 1].y);
-			cr->line_to(points[i].x, points[i].y);
+			cr->move_to(points[currPoints][i - 1].x, points[currPoints][i - 1].y);
+			cr->line_to(points[currPoints][i].x, points[currPoints][i].y);
 			cr->stroke();
 		}
 		
 		cr->set_line_width(9.0);
 		
-		for (int i = 0; i < points.size(); ++i)
+		for (int i = 0; i < points[currPoints].size(); ++i)
 		{
-			switch (points[i].get_flag())
+			switch (points[currPoints][i].get_flag())
 			{
 				case CMARKEDPOINT_FLAG_NO_SELECT:
 					cr->set_source_rgb(0.0, 0.0, 0.0);
@@ -128,7 +232,7 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 			}
 
 			cr->begin_new_sub_path();
-			cr->arc(points[i].x, points[i].y, 0.6, 0, 6.28);
+			cr->arc(points[currPoints][i].x, points[currPoints][i].y, 0.6, 0, 6.28);
 			
 			cr->stroke();
 		}
@@ -143,10 +247,10 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 	{
 		if (event->button == 1)
 		{
-			switch (points.push(event->x, event->y, pDA1->get_width(), pDA1->get_height()))
+			switch (points[currPoints].push(event->x, event->y, pDA1->get_width(), pDA1->get_height()))
 			{
 				case CPOINTS_PUSH_OK:		
-					pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points.size()));
+					pSB1->push(Glib::ustring::compose("Точка #%1 добавлена на плоскость", points[currPoints].size()));
 					break;
 			
 				case CPOINTS_PUSH_NO_SPACE:
@@ -156,8 +260,8 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 		}
 	
 		if (event->button == 3)
-			if (size_t i = points.search_click_point(event->x, event->y))
-				points[i - 1].set_flag((points[i - 1].get_flag() == CMARKEDPOINT_FLAG_SELECT) ? CMARKEDPOINT_FLAG_NO_SELECT : CMARKEDPOINT_FLAG_SELECT);
+			if (size_t i = points[currPoints].search_click_point(event->x, event->y))
+				points[currPoints][i - 1].set_flag((points[currPoints][i - 1].get_flag() == CMARKEDPOINT_FLAG_SELECT) ? CMARKEDPOINT_FLAG_NO_SELECT : CMARKEDPOINT_FLAG_SELECT);
 			else
 				pM3->popup(event->button, event->time);			
 	}
@@ -169,7 +273,7 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 
 bool pIMI6_on_button_press_event (GdkEventButton * event)
 {
-	points.clear();
+	points[currPoints].clear();
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
 	pSB1->push("Плоскость очищена от точек ломаной");
 
@@ -204,7 +308,7 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 
 		if (count)
 		{
-			if (points.size())
+			if (points[currPoints].size())
 			{
 				Gtk::MessageDialog dialogM(*pWindow, "Объединить старые и новые координаты точек?", false, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
 				
@@ -212,7 +316,7 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 				{
 					case(Gtk::RESPONSE_YES):
 					{
-						switch (points.push(newPoints))
+						switch (points[currPoints].push(newPoints))
 						{
 							case CPOINTS_PUSH_OK:				
 								pSB1->push(Glib::ustring("Все точки добавлены на плоскость"));
@@ -226,13 +330,13 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 					}
 					case(Gtk::RESPONSE_NO):
 					{
-						points = newPoints;
+						points[currPoints] = newPoints;
 						break;
 					}
 				}
 			}
 			else
-				points = newPoints;
+				points[currPoints] = newPoints;
 			
 			pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 		}
@@ -259,7 +363,7 @@ bool pIMI2_on_button_press_event (GdkEventButton * event)
 	dialogFC.add_filter(filter);
 
 	if (dialogFC.run() == Gtk::RESPONSE_OK)
-		if (points.save_to_file(dialogFC.get_filename()))
+		if (points[currPoints].save_to_file(dialogFC.get_filename()))
 			pSB1->push(Glib::ustring::compose("Координаты точек сохранены в файл \"%1\" успешно", dialogFC.get_filename()));
 		else
 			pSB1->push(Glib::ustring::compose("Не удалось сохранить координаты точек в файл \"%1\"", dialogFC.get_filename()));
@@ -269,7 +373,7 @@ bool pIMI2_on_button_press_event (GdkEventButton * event)
 
 bool pMI3_on_button_press_event (GdkEventButton * event)
 {
-	points.mark_all_points(CMARKEDPOINT_FLAG_SELECT);
+	points[currPoints].mark_all_points(CMARKEDPOINT_FLAG_SELECT);
 
 	pSB1->push(Glib::ustring("Выделены все точки ломаной"));
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
@@ -279,7 +383,7 @@ bool pMI3_on_button_press_event (GdkEventButton * event)
 
 bool pMI4_on_button_press_event (GdkEventButton * event)
 {
-	points.mark_all_points(CMARKEDPOINT_FLAG_NO_SELECT);
+	points[currPoints].mark_all_points(CMARKEDPOINT_FLAG_NO_SELECT);
 	
 	pSB1->push(Glib::ustring("Выделение со всех точек ломаной снято"));		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
@@ -289,7 +393,7 @@ bool pMI4_on_button_press_event (GdkEventButton * event)
 
 bool pMI5_on_button_press_event (GdkEventButton * event)
 {
-	points.delete_marked_points(CMARKEDPOINT_FLAG_SELECT);
+	points[currPoints].delete_marked_points(CMARKEDPOINT_FLAG_SELECT);
 
 	pSB1->push(Glib::ustring("Выделенные точки ломаной удалены"));		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			

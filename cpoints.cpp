@@ -9,7 +9,13 @@
 
 #include "cpoints.h"
 #include "cpoint.h"
-
+/*
+cPoints& cPoints::operator= (cPoints &b)
+{
+	a = b.a;
+	return &(*this);	
+}
+*/
 size_t cPoints::search_click_point (int x, int y)
 {
 	cPoint temp(x, y);
@@ -220,6 +226,7 @@ int cPoints::read_from_file (Glib::ustring filename)
 		return 0;
 
 	int minX, maxX, minY, maxY;
+	
 	minX = maxX = a[0].second.x;
 	minY = maxY = a[0].second.y; 
 	
