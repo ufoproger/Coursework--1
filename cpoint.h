@@ -6,14 +6,14 @@
 class cPoint
 {
 	public:
-		int x;
-		int y;
+		double x;
+		double y;
 
 		cPoint ();
-		cPoint (int, int);
+		cPoint (double, double);
 
-		float length_to (cPoint);
-		float length_to (cPoint, cPoint);
+		double length_to (cPoint);
+		double length_to (cPoint, cPoint);
 		int point_position (cPoint, cPoint);
 		bool operator== (cPoint);
 

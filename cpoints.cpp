@@ -16,7 +16,7 @@ cPoints& cPoints::operator= (cPoints &b)
 	return &(*this);	
 }
 */
-size_t cPoints::search_click_point (int x, int y)
+size_t cPoints::search_click_point (double x, double y)
 {
 	cPoint temp(x, y);
 
@@ -177,10 +177,10 @@ void cPoints::calc ()
 		a = temp;
 }
 
-cMarkedPoint cPoints::correct_point (cMarkedPoint point, int width, int height)
+cMarkedPoint cPoints::correct_point (cMarkedPoint point, double width, double height)
 {
-	point.x = std::max(std::min(point.x, width - minTab), (int)minTab);
-	point.y = std::max(std::min(point.y, height - minTab), (int)minTab);
+	point.x = std::max(std::min(point.x, width - minTab), (double)minTab);
+	point.y = std::max(std::min(point.y, height - minTab), (double)minTab);
 
 	return point;
 }
@@ -200,7 +200,7 @@ bool cPoints::save_to_file (Glib::ustring filename)
 	return true;
 }
 
-bool cPoints::mark_point (int x, int y, CMARKEDPOINT_FLAG state)
+bool cPoints::mark_point (double x, double y, CMARKEDPOINT_FLAG state)
 {
 	size_t i;
 	
@@ -219,13 +219,13 @@ int cPoints::read_from_file (Glib::ustring filename)
 
 	int count = 0;
 	
-	for (float x, y; fin >> x >> y;)
+	for (double x, y; fin >> x >> y;)
 		a.push_back(std::make_pair(cPoint(0, 0), cMarkedPoint(x, y)));
 	
 	if (a.size() == 0)
 		return 0;
 
-	int minX, maxX, minY, maxY;
+	double minX, maxX, minY, maxY;
 	
 	minX = maxX = a[0].second.x;
 	minY = maxY = a[0].second.y; 
@@ -251,11 +251,11 @@ int cPoints::read_from_file (Glib::ustring filename)
 			
 	minX = minY = 0;
 
-	float indexX = infelicity / (float)(maxX - minX + minTab);
-	float indexY = infelicity / (float)(maxY - minY + minTab);
+	double indexX = infelicity / (double)(maxX - minX + minTab);
+	double indexY = infelicity / (double)(maxY - minY + minTab);
 
 	for (size_t i = 0; i < a.size(); ++i)
-		a[i].first = cPoint((float)a[i].second.x * indexX, (float)a[i].second.y * indexY);
+		a[i].first = cPoint((double)a[i].second.x * indexX, (double)a[i].second.y * indexY);
 	
 	return a.size();
 }
@@ -289,9 +289,9 @@ CPOINTS_PUSH cPoints::push (cPoints points)
 	return (ok) ? (CPOINTS_PUSH_OK) : (CPOINTS_PUSH_NOT_ALL);
 }
 
-CPOINTS_PUSH cPoints::push (int x, int y, int width, int height)
+CPOINTS_PUSH cPoints::push (double x, double y, double width, double height)
 {
-	cPoint temp((float)x / (float)width * infelicity, (float)y / (float)height * infelicity);
+	cPoint temp(x / width * infelicity, y / height * infelicity);
 	
 	for (size_t i = 0, size = a.size(); i < size; ++i)
 		if (a[i].first.length_to(temp) < minLength)
@@ -306,13 +306,13 @@ CPOINTS_PUSH cPoints::push (int x, int y, int width, int height)
 	return CPOINTS_PUSH_OK;
 }
 
-void cPoints::correct (int newWidth, int newHeight)
+void cPoints::correct (double newWidth, double newHeight)
 {
-	float indexX = (float)newWidth/infelicity;
-	float indexY = (float)newHeight/infelicity;
+	double indexX = newWidth/infelicity;
+	double indexY = newHeight/infelicity;
 
 	for (size_t i = 0; i < a.size(); ++i)
-		a[i].second = correct_point(cMarkedPoint((float)a[i].first.x * indexX, (float)a[i].first.y * indexY, a[i].second.get_flag()), newWidth, newHeight);
+		a[i].second = correct_point(cMarkedPoint(a[i].first.x * indexX, a[i].first.y * indexY, a[i].second.get_flag()), newWidth, newHeight);
 }
 
 cMarkedPoint& cPoints::operator[] (size_t index)

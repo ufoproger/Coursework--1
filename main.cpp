@@ -187,6 +187,8 @@ bool pMI8_on_button_press_event (GdkEventButton*)
 void pNB1_on_switch_page(GtkNotebookPage* page, guint pageNum)
 {
 	currPoints = pageNum;
+	
+	pSB1->push(Glib::ustring::compose("Выбран %1 режим ввода точек", currPoints ? "ручной" : "графический"));
 }
 
 void pAD1_on_about_dialog_response (int response)
@@ -218,7 +220,7 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 		
 		cr->set_line_width(9.0);
 		
-		for (int i = 0; i < points[currPoints].size(); ++i)
+		for (size_t i = 0; i < points[currPoints].size(); ++i)
 		{
 			switch (points[currPoints][i].get_flag())
 			{

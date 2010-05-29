@@ -16,14 +16,14 @@ std::ostream& operator<< (std::ostream & out, cMarkedPoint a)
 	return out;
 }
 
-cMarkedPoint::cMarkedPoint (int _x, int _y)
+cMarkedPoint::cMarkedPoint (double _x, double _y)
 {
 	state = CMARKEDPOINT_FLAG_NO_SELECT;
 	x = _x;
 	y = _y;
 }
 
-cMarkedPoint::cMarkedPoint (int _x, int _y, CMARKEDPOINT_FLAG _state)
+cMarkedPoint::cMarkedPoint (double _x, double _y, CMARKEDPOINT_FLAG _state)
 {
 	state = _state;
 	x = _x;

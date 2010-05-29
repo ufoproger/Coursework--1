@@ -10,8 +10,8 @@ class cMarkedPoint: public cPoint
 {
 	public:
 		cMarkedPoint ();
-		cMarkedPoint (int, int);
-		cMarkedPoint (int, int, CMARKEDPOINT_FLAG);
+		cMarkedPoint (double, double);
+		cMarkedPoint (double, double, CMARKEDPOINT_FLAG);
 
 		CMARKEDPOINT_FLAG get_flag ();
 		void set_flag (CMARKEDPOINT_FLAG);
