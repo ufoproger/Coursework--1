@@ -8,14 +8,14 @@ cMarkedPoint::cMarkedPoint ()
 {
 	state = CMARKEDPOINT_FLAG_NO_SELECT;
 }
-
+/*
 std::ostream& operator<< (std::ostream & out, cMarkedPoint a)
 {
 	out << "(" << a.x << ", " << a.y << "; " << a.state << ")";
 	
 	return out;
 }
-
+*/
 cMarkedPoint::cMarkedPoint (double _x, double _y)
 {
 	state = CMARKEDPOINT_FLAG_NO_SELECT;

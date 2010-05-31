@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 
 #include <gtkmm.h>
 
@@ -29,7 +30,8 @@ Gtk::MenuItem		*pMI4; // Пункт контекстного меню "Снят�
 Gtk::MenuItem		*pMI5; // Пункт контекстного меню "Удалить выделенное"
 Gtk::MenuItem		*pMI7;
 Gtk::MenuItem		*pMI8;
-Gtk::TreeView		*pTV1;
+Gtk::TreeView		*pTrV1;
+Gtk::TextView		*pTeV1;
 Gtk::Notebook		*pNB1;
 Gtk::Window			*pWindow;
 Gtk::Button			*pB1;
@@ -47,12 +49,14 @@ bool pMI5_on_button_press_event (GdkEventButton*);
 bool pMI7_on_button_press_event (GdkEventButton*);
 bool pMI8_on_button_press_event (GdkEventButton*);
 bool pDA1_on_button_press_event (GdkEventButton*);
-bool pTV1_on_button_press_event(GdkEventButton*);
+bool pTrV1_on_button_press_event(GdkEventButton*);
 bool pDA1_on_expose_event (GdkEventExpose*);
 void pAD1_on_about_dialog_response (int);
 void pB1_on_button_press_event ();
 void pB2_on_button_press_event ();
 void pNB1_on_switch_page (GtkNotebookPage*, guint);
+void pTrV1_update_list ();
+void pTrV1_save_list ();
 
 int main (int argc, char *argv[])
 {
@@ -112,20 +116,22 @@ int main (int argc, char *argv[])
 	refBuilder->get_widget("button2", pB2);
 	pB2->signal_clicked().connect(sigc::ptr_fun(pB2_on_button_press_event));
 
-	refBuilder->get_widget("treeview1", pTV1);
-	pTV1->set_events(Gdk::BUTTON_PRESS_MASK);	
-	pTV1->signal_button_press_event().connect(sigc::ptr_fun(pTV1_on_button_press_event), false);
+	refBuilder->get_widget("treeview1", pTrV1);
+	pTrV1->set_events(Gdk::BUTTON_PRESS_MASK);	
+	pTrV1->signal_button_press_event().connect(sigc::ptr_fun(pTrV1_on_button_press_event), false);
 	
 	refBuilder->get_widget("notebook1", pNB1);
 	pNB1->signal_switch_page().connect(sigc::ptr_fun(pNB1_on_switch_page));
 
 	refBuilder->get_widget("menu3", pM3);
-		
+	
+	refBuilder->get_widget("textview1", pTeV1);
+	
 	refTreeModel = Gtk::ListStore::create(columns);
 	
-	pTV1->set_model(refTreeModel);
-	pTV1->append_column_editable("Ось абсцисс", columns.columnX);
-	pTV1->append_column_editable("Ось ординат", columns.columnY);
+	pTrV1->set_model(refTreeModel);
+	pTrV1->append_column_editable("Ось абсцисс", columns.columnX);
+	pTrV1->append_column_editable("Ось ординат", columns.columnY);
 
 	pSB1->push("Разместите точки на плоскости!");
 
@@ -134,7 +140,7 @@ int main (int argc, char *argv[])
 	return 0;
 }
 
-bool pTV1_on_button_press_event(GdkEventButton* event)
+bool pTrV1_on_button_press_event(GdkEventButton* event)
 {
 	if(event->type == GDK_BUTTON_PRESS && event->button == 3)
 		pM5->popup(event->button, event->time);
@@ -145,15 +151,39 @@ bool pTV1_on_button_press_event(GdkEventButton* event)
 void pB1_on_button_press_event ()
 {
 	refTreeModel->clear();
+	pSB1->push(Glib::ustring("Список очищен от точек"));
 }
 
 void pB2_on_button_press_event ()
 {
+	
+	pTrV1_save_list();
+	
+	std::ostringstream oss;
+	
+	for (size_t i = 0, size = points[currPoints].size(); i < size; ++i)
+		oss << points[currPoints][i] << " - ";
+		
+	std::string sz = oss.str();
+
+	if (sz.empty())
+		sz = "В списке нет точек.";
+	else
+		sz.erase(sz.end() - 2);
+	
+	Glib::RefPtr < Gtk::TextBuffer > refTextBuffer = Gtk::TextBuffer::create();
+
+	refTextBuffer->set_text(sz);
+	pTeV1->set_buffer(refTextBuffer);
+
+	pSB1->push(Glib::ustring("Список точек обработан"));
+	
+	pTrV1_update_list();
 }
 
 bool pMI7_on_button_press_event (GdkEventButton*)
 {
-	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTV1->get_selection();
+	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTrV1->get_selection();
 
 	if(refSelection)
 	{
@@ -161,6 +191,8 @@ bool pMI7_on_button_press_event (GdkEventButton*)
 
 		if(it)
 			refTreeModel->erase(it);
+			
+		pSB1->push(Glib::ustring("Точка удалена из списка"));
 	}
 
 	return true;
@@ -168,7 +200,7 @@ bool pMI7_on_button_press_event (GdkEventButton*)
 
 bool pMI8_on_button_press_event (GdkEventButton*)
 {
-	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTV1->get_selection();
+	Glib::RefPtr<Gtk::TreeView::Selection> refSelection = pTrV1->get_selection();
 
 	if(refSelection)
 	{
@@ -179,9 +211,48 @@ bool pMI8_on_button_press_event (GdkEventButton*)
 
 		row[columns.columnX] = 0;
 		row[columns.columnY] = 0;
+		
+		pSB1->push(Glib::ustring("Новая точка добавлена в список"));
 	}
 
 	return true;
+}
+
+void pTrV1_update_list ()
+{
+	if (!currPoints)
+		return;
+
+	refTreeModel->clear();
+
+	for (size_t i = 0, size = points[currPoints].size(); i < size; ++i)
+	{
+		Gtk::TreeModel::Row row = *(refTreeModel->append());
+
+		row[columns.columnX] = points[currPoints][i].x;
+		row[columns.columnY] = points[currPoints][i].y;
+	}
+}
+
+void pTrV1_save_list ()
+{	
+	if (!currPoints)
+		return;
+
+	points[currPoints].clear();
+
+	typedef Gtk::TreeModel::Children tdTypeChildren;
+	
+	tdTypeChildren children = refTreeModel->children();
+
+	for(tdTypeChildren::iterator it = children.begin(); it != children.end(); ++it)
+	{
+		Gtk::TreeModel::Row row = *it;
+
+		points[currPoints].push(double(row[columns.columnX]), double(row[columns.columnY]));
+	}
+	
+	pTrV1_update_list();
 }
 
 void pNB1_on_switch_page(GtkNotebookPage* page, guint pageNum)
@@ -189,6 +260,7 @@ void pNB1_on_switch_page(GtkNotebookPage* page, guint pageNum)
 	currPoints = pageNum;
 	
 	pSB1->push(Glib::ustring::compose("Выбран %1 режим ввода точек", currPoints ? "ручной" : "графический"));
+	pTrV1_update_list();
 }
 
 void pAD1_on_about_dialog_response (int response)
@@ -277,7 +349,13 @@ bool pIMI6_on_button_press_event (GdkEventButton * event)
 {
 	points[currPoints].clear();
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());
-	pSB1->push("Плоскость очищена от точек ломаной");
+	
+	if (currPoints)
+		pSB1->push("Список очищен от отчек ломаной");
+	else
+		pSB1->push("Плоскость очищена от точек ломаной");
+		
+	pTrV1_update_list();
 
 	return true;
 }
@@ -321,11 +399,17 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 						switch (points[currPoints].push(newPoints))
 						{
 							case CPOINTS_PUSH_OK:				
-								pSB1->push(Glib::ustring("Все точки добавлены на плоскость"));
+								if (currPoints)
+									pSB1->push(Glib::ustring("Все точки добавлены в список"));
+								else
+									pSB1->push(Glib::ustring("Все точки добавлены на плоскость"));
 								break;
 								
 							case CPOINTS_PUSH_NOT_ALL:				
-								pSB1->push(Glib::ustring("Не все точки добавлены на плоскость"));
+								if (currPoints)
+									pSB1->push(Glib::ustring("Не все точки добавлены в список"));
+								else
+									pSB1->push(Glib::ustring("Не все точки добавлены на плоскость"));
 								break;
 						}
 						break;
@@ -349,11 +433,16 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 			dialogM.run();
 		}
 	}
+
+	pTrV1_update_list();
+	
 	return true;
 }
 
 bool pIMI2_on_button_press_event (GdkEventButton * event)
 {
+	pTrV1_save_list();
+
 	Gtk::FileChooserDialog dialogFC(*pWindow, "Выберите файл для сохранения координат точек", Gtk::FILE_CHOOSER_ACTION_SAVE);
 
 	dialogFC.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);

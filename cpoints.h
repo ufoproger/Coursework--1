@@ -15,8 +15,8 @@ class cPoints
 	public:
 		cPoints ();
 		
-//		cPoints& operator= (cPoints &);
 		CPOINTS_PUSH push (double, double, double, double);
+		CPOINTS_PUSH push (double, double);
 		CPOINTS_PUSH push (cPoints);
 		cMarkedPoint& operator[] (size_t);
 		size_t search_click_point (double, double);

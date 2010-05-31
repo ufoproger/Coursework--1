@@ -9,13 +9,7 @@
 
 #include "cpoints.h"
 #include "cpoint.h"
-/*
-cPoints& cPoints::operator= (cPoints &b)
-{
-	a = b.a;
-	return &(*this);	
-}
-*/
+
 size_t cPoints::search_click_point (double x, double y)
 {
 	cPoint temp(x, y);
@@ -105,6 +99,7 @@ bool cPoints::test_min_length_to_point (cPoint point)
 	return true;
 }
 
+#ifdef USE_CALC_R
 bool cPoints::make_sequence (tpPointsArray source, tpPointsArray result)
 {
 	if (source.empty())
@@ -176,6 +171,68 @@ void cPoints::calc ()
 	if (!f)
 		a = temp;
 }
+
+#else
+
+void cPoints::calc ()
+{
+	for (size_t i = 1, size = a.size(); i < size; ++i)
+		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
+			swap(a[0], a[i]);
+
+	for (size_t i = 1, size = a.size(); i < size - 1; ++i)
+	{
+		size_t rightmost = i;
+
+		for (size_t j = i + 1; j < size; ++j)
+		{
+			if (a[j].first.point_position(a[i - 1].first, a[rightmost].first) == -1)
+				rightmost = j;
+		}
+			swap(a[i], a[rightmost]);
+	}
+	
+	std::vector < cPoint > b;
+
+	for (bool f = true; f; )
+	{
+		f = false;
+		
+		for (size_t i = 0, size = a.size(); i < size; ++i)
+		{
+			for (size_t j = 0; j < size - 1; ++j)
+			{
+				if (i == j || i == j + 1)
+					continue;
+					
+				if (a[i].first.length_to(a[j].first, a[j + 1].first) < 20.0 && find(b.begin(), b.end(), a[j].first) == b.end() && find(b.begin(), b.end(), a[j + 1].first) == b.end() && find(b.begin(), b.end(), a[i].first) == b.end())
+				{
+					b.push_back(a[i].first);
+
+					tpPointsArray temp = a;
+				
+					if (i < j)
+					{
+						a.insert(a.begin() + j + 1, a[i]);
+						a.erase(a.begin() + i);
+					}
+					else
+					{
+						a.insert(a.begin() + j + 1, a[i]);
+						a.erase(a.begin() + i + 1);
+					}
+					
+					if (!(f = test_crossing_lines()))
+						a = temp;
+
+					break;
+				}
+			}
+		}
+	}
+}
+
+#endif
 
 cMarkedPoint cPoints::correct_point (cMarkedPoint point, double width, double height)
 {
@@ -297,11 +354,24 @@ CPOINTS_PUSH cPoints::push (double x, double y, double width, double height)
 		if (a[i].first.length_to(temp) < minLength)
 			return CPOINTS_PUSH_NO_SPACE;
 
-		a.push_back(std::make_pair(temp, correct_point(cMarkedPoint(x, y), width, height)));
+	a.push_back(std::make_pair(temp, correct_point(cMarkedPoint(x, y), width, height)));
 
-	
 	calc();
 	
+	return CPOINTS_PUSH_OK;
+}
+
+CPOINTS_PUSH cPoints::push (double x, double y)
+{
+	cPoint temp(x, y);
+	
+	for (size_t i = 0, size = a.size(); i < size; ++i)
+		if (a[i].first.length_to(temp) < 1e-6)
+			return CPOINTS_PUSH_NO_SPACE;
+
+	a.push_back(std::make_pair(temp, cMarkedPoint(x, y)));
+
+	calc();
 	
 	return CPOINTS_PUSH_OK;
 }
