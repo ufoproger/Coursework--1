@@ -2,7 +2,25 @@
 #include <iostream>
 #include <sstream>
 
-#include <gtkmm.h>
+#include <glibmm/ustring.h>
+
+#include <gtkmm/filechooserdialog.h>
+#include <gtkmm/messagedialog.h>
+#include <gtkmm/imagemenuitem.h>
+#include <gtkmm/aboutdialog.h>
+#include <gtkmm/drawingarea.h>
+#include <gtkmm/statusbar.h>
+#include <gtkmm/liststore.h>
+#include <gtkmm/textview.h>
+#include <gtkmm/treeview.h>
+#include <gtkmm/notebook.h>
+#include <gtkmm/menuitem.h>
+#include <gtkmm/builder.h>
+#include <gtkmm/window.h>
+#include <gtkmm/button.h>
+#include <gtkmm/stock.h>
+#include <gtkmm/main.h>
+#include <gtkmm/menu.h>
 
 #include "cmodelcolumns.h"
 #include "cmarkedpoint.h"
@@ -10,24 +28,23 @@
 #include "cpoints.h"
 #include "cpoint.h"
 
-
+cModelColumns columns;
 cPoints points[2];
 size_t currPoints;
 
-cModelColumns columns;
-
 Glib::RefPtr<Gtk::ListStore> refTreeModel;
 
-Gtk::ImageMenuItem 	*pIMI1; // Пункт меню "Открыть"
-Gtk::ImageMenuItem 	*pIMI2; // Пункт меню "Сохранить"
-Gtk::ImageMenuItem 	*pIMI3; // Пункт меню "О программе"
-Gtk::ImageMenuItem	*pIMI6; // Пункт меню "Очистить"
+Gtk::ImageMenuItem 	*pIMI1;
+Gtk::ImageMenuItem 	*pIMI2;
+Gtk::ImageMenuItem 	*pIMI3;
+Gtk::ImageMenuItem	*pIMI6;
+Gtk::ImageMenuItem	*pIMI9;
 Gtk::AboutDialog	*pAD1;
 Gtk::DrawingArea	*pDA1;
 Gtk::Statusbar		*pSB1;
-Gtk::MenuItem		*pMI3; // Пункт контекстного меню "Выделить всё"
-Gtk::MenuItem		*pMI4; // Пункт контекстного меню "Снять выделение"
-Gtk::MenuItem		*pMI5; // Пункт контекстного меню "Удалить выделенное"
+Gtk::MenuItem		*pMI3;
+Gtk::MenuItem		*pMI4;
+Gtk::MenuItem		*pMI5; 
 Gtk::MenuItem		*pMI7;
 Gtk::MenuItem		*pMI8;
 Gtk::TreeView		*pTrV1;
@@ -43,6 +60,7 @@ bool pIMI1_on_button_press_event (GdkEventButton*);
 bool pIMI2_on_button_press_event (GdkEventButton*);
 bool pIMI3_on_button_press_event (GdkEventButton*);
 bool pIMI6_on_button_press_event (GdkEventButton*);
+bool pIMI9_on_button_press_event (GdkEventButton*);
 bool pMI3_on_button_press_event (GdkEventButton*);
 bool pMI4_on_button_press_event (GdkEventButton*);
 bool pMI5_on_button_press_event (GdkEventButton*);
@@ -65,11 +83,11 @@ int main (int argc, char *argv[])
 	Gtk::Main kit(argc, argv);
 	Glib::RefPtr<Gtk::Builder> refBuilder = Gtk::Builder::create();
 
-	refBuilder->add_from_file("main_window.glade");
+	refBuilder->add_from_file("windows.glade");
 
 	refBuilder->get_widget("window1", pWindow);
 	pWindow->set_default_size(400, 400);
-	pWindow->set_title(Glib::ustring("Курсовая работа"));
+	pWindow->set_title("Курсовая работа");
 	
 	refBuilder->get_widget("drawingarea1", pDA1);
 	pDA1->set_events(Gdk::BUTTON_PRESS_MASK);
@@ -98,6 +116,9 @@ int main (int argc, char *argv[])
 	
 	refBuilder->get_widget("imagemenuitem6", pIMI6);
 	pIMI6->signal_button_press_event().connect(sigc::ptr_fun(pIMI6_on_button_press_event));
+	
+	refBuilder->get_widget("imagemenuitem9", pIMI9);
+	pIMI9->signal_button_press_event().connect(sigc::ptr_fun(pIMI9_on_button_press_event));
 
 	refBuilder->get_widget("aboutdialog1", pAD1);
 	pAD1->signal_response().connect(sigc::ptr_fun(pAD1_on_about_dialog_response));
@@ -140,6 +161,13 @@ int main (int argc, char *argv[])
 	return 0;
 }
 
+bool pIMI9_on_button_press_event (GdkEventButton *event)
+{
+	pWindow->hide();
+
+	return true;
+}
+
 bool pTrV1_on_button_press_event(GdkEventButton* event)
 {
 	if(event->type == GDK_BUTTON_PRESS && event->button == 3)
@@ -151,12 +179,12 @@ bool pTrV1_on_button_press_event(GdkEventButton* event)
 void pB1_on_button_press_event ()
 {
 	refTreeModel->clear();
-	pSB1->push(Glib::ustring("Список очищен от точек"));
+
+	pSB1->push("Список очищен от точек");
 }
 
 void pB2_on_button_press_event ()
 {
-	
 	pTrV1_save_list();
 	
 	std::ostringstream oss;
@@ -164,19 +192,19 @@ void pB2_on_button_press_event ()
 	for (size_t i = 0, size = points[currPoints].size(); i < size; ++i)
 		oss << points[currPoints][i] << " - ";
 		
-	std::string sz = oss.str();
+	Glib::ustring sz = oss.str();
 
 	if (sz.empty())
 		sz = "В списке нет точек.";
 	else
-		sz.erase(sz.end() - 2);
+		sz.erase(sz.size() - 3, 3);
 	
 	Glib::RefPtr < Gtk::TextBuffer > refTextBuffer = Gtk::TextBuffer::create();
 
 	refTextBuffer->set_text(sz);
 	pTeV1->set_buffer(refTextBuffer);
 
-	pSB1->push(Glib::ustring("Список точек обработан"));
+	pSB1->push("Список точек обработан");
 	
 	pTrV1_update_list();
 }
@@ -192,7 +220,7 @@ bool pMI7_on_button_press_event (GdkEventButton*)
 		if(it)
 			refTreeModel->erase(it);
 			
-		pSB1->push(Glib::ustring("Точка удалена из списка"));
+		pSB1->push("Точка удалена из списка");
 	}
 
 	return true;
@@ -212,7 +240,7 @@ bool pMI8_on_button_press_event (GdkEventButton*)
 		row[columns.columnX] = 0;
 		row[columns.columnY] = 0;
 		
-		pSB1->push(Glib::ustring("Новая точка добавлена в список"));
+		pSB1->push("Новая точка добавлена в список");
 	}
 
 	return true;
@@ -338,7 +366,7 @@ bool pDA1_on_button_press_event (GdkEventButton * event)
 					break;
 			
 				case CPOINTS_PUSH_NO_SPACE:
-					pSB1->push(Glib::ustring("Нельзя размещать точки так близко друг к другу"));
+					pSB1->push("Нельзя размещать точки так близко друг к другу");
 					break;				
 			}
 		}
@@ -385,8 +413,10 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 	dialogFC.add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
 	
 	Gtk::FileFilter filter;
+	
 	filter.set_name("Текстовый файл");
 	filter.add_pattern("*.txt");
+	
 	dialogFC.add_filter(filter);
 
 	if (dialogFC.run() == Gtk::RESPONSE_OK)
@@ -410,16 +440,16 @@ bool pIMI1_on_button_press_event (GdkEventButton * event)
 						{
 							case CPOINTS_PUSH_OK:				
 								if (currPoints)
-									pSB1->push(Glib::ustring("Все точки добавлены в список"));
+									pSB1->push("Все точки добавлены в список");
 								else
-									pSB1->push(Glib::ustring("Все точки добавлены на плоскость"));
+									pSB1->push("Все точки добавлены на плоскость");
 								break;
 								
 							case CPOINTS_PUSH_NOT_ALL:				
 								if (currPoints)
-									pSB1->push(Glib::ustring("Не все точки добавлены в список"));
+									pSB1->push("Не все точки добавлены в список");
 								else
-									pSB1->push(Glib::ustring("Не все точки добавлены на плоскость"));
+									pSB1->push("Не все точки добавлены на плоскость");
 								break;
 						}
 						break;
@@ -459,8 +489,10 @@ bool pIMI2_on_button_press_event (GdkEventButton * event)
 	dialogFC.add_button(Gtk::Stock::SAVE, Gtk::RESPONSE_OK);
 	
 	Gtk::FileFilter filter;
+
 	filter.set_name("Текстовый файл");
 	filter.add_pattern("*.txt");
+
 	dialogFC.add_filter(filter);
 
 	if (dialogFC.run() == Gtk::RESPONSE_OK)
@@ -476,7 +508,7 @@ bool pMI3_on_button_press_event (GdkEventButton * event)
 {
 	points[currPoints].mark_all_points(CMARKEDPOINT_FLAG_SELECT);
 
-	pSB1->push(Glib::ustring("Выделены все точки ломаной"));
+	pSB1->push("Выделены все точки ломаной");
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;
@@ -486,7 +518,7 @@ bool pMI4_on_button_press_event (GdkEventButton * event)
 {
 	points[currPoints].mark_all_points(CMARKEDPOINT_FLAG_NO_SELECT);
 	
-	pSB1->push(Glib::ustring("Выделение со всех точек ломаной снято"));		
+	pSB1->push("Выделение со всех точек ломаной снято");		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;
@@ -496,7 +528,7 @@ bool pMI5_on_button_press_event (GdkEventButton * event)
 {
 	points[currPoints].delete_marked_points(CMARKEDPOINT_FLAG_SELECT);
 
-	pSB1->push(Glib::ustring("Выделенные точки ломаной удалены"));		
+	pSB1->push("Выделенные точки ломаной удалены");		
 	pDA1->queue_draw_area(0, 0, pDA1->get_width(), pDA1->get_height());			
 
 	return true;

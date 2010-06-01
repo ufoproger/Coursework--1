@@ -1,12 +1,15 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <utility>
+#include <string>
 #include <vector>
 #include <cmath>
 
-#include <glibmm.h>
+#include <glibmm/ustring.h>
 
+#include "cmarkedpoint.h"
 #include "cpoints.h"
 #include "cpoint.h"
 
@@ -156,13 +159,11 @@ int cPoints::make_sequence (tpPointsArray source, tpPointsArray result, int &ite
 			continue;
 			
 		int f = make_sequence(temp, result, iterations);
-		if (f == 2)
-			return 2;
-
+		
 		result.pop_back();
 
 		if (f)
-			return 1;
+			return f;
 	}
 	
 	return 0;
@@ -213,7 +214,7 @@ void cPoints::calc_b ()
 				if (i == j || i == j + 1)
 					continue;
 					
-				if (a[i].first.length_to(a[j].first, a[j + 1].first) < 20.0 && find(b.begin(), b.end(), a[j].first) == b.end() && find(b.begin(), b.end(), a[j + 1].first) == b.end() && find(b.begin(), b.end(), a[i].first) == b.end())
+				if (a[i].first.length_to(a[j].first, a[j + 1].first) < minLength && find(b.begin(), b.end(), a[j].first) == b.end() && find(b.begin(), b.end(), a[j + 1].first) == b.end() && find(b.begin(), b.end(), a[i].first) == b.end())
 				{
 					b.push_back(a[i].first);
 
@@ -290,8 +291,14 @@ size_t cPoints::read_from_file (Glib::ustring filename)
 
 	int count = 0;
 	
-	for (double x, y; fin >> x >> y;)
-		a.push_back(std::make_pair(cPoint(0, 0), cMarkedPoint(x, y)));
+	for (std::string line; getline(fin, line);)
+	{
+		std::istringstream iss(line);
+		double x, y;
+
+		if (iss >> x >> y)
+			a.push_back(std::make_pair(cPoint(0, 0), cMarkedPoint(x, y)));
+	}
 	
 	if (a.size() == 0)
 		return 0;
@@ -333,6 +340,8 @@ size_t cPoints::read_from_file (Glib::ustring filename)
 
 void cPoints::clear ()
 {
+	isCalcA = true;
+
 	a.clear();
 }
 

@@ -1,8 +1,6 @@
 #ifndef CMARKEDPOINT_H
 #define CMARKEDPOINT_H
 
-#include <iostream>
-
 #include "defines.h"
 #include "cpoint.h"
 

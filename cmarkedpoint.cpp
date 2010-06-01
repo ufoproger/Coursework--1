@@ -1,6 +1,3 @@
-#include <iostream>
-#include <cmath>
-
 #include "cmarkedpoint.h"
 #include "defines.h"
 

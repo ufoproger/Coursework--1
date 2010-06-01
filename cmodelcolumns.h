@@ -1,7 +1,8 @@
 #ifndef CMODELCOLUMNS_H
 #define CMODELCOLUMNS_H
 
-#include <gtkmm.h>
+#include <gtkmm/treemodelcolumn.h>
+#include <gtkmm/treemodel.h>
 
 class cModelColumns : public Gtk::TreeModel::ColumnRecord
 {
