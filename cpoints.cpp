@@ -99,28 +99,32 @@ bool cPoints::test_min_length_to_point (cPoint point)
 	return true;
 }
 
-#ifdef USE_CALC_R
-bool cPoints::make_sequence (tpPointsArray source, tpPointsArray result)
+int cPoints::make_sequence (tpPointsArray source, tpPointsArray result, int &iterations)
 {
+	++iterations;
+
+	if (iterations > 6000)
+		return 2;
+	
 	if (source.empty())
 	{
 		a = result;
 
 		if (!test_crossing_lines())
-			return false;
+			return 0;
 
 		for (size_t i = 0, size = a.size(); i < size; ++i)
 		{
 			for (size_t j = 0; j < size; ++j)
 				if (i != j && a[i].first.length_to(a[j].first) < minLength)
-					return false;
+					return 0;
 					
 			for (size_t j = 1; j < size; ++j)
 				if (i != j && i != j - 1 && a[i].first.length_to(a[j].first, a[j - 1].first) < minLength)
-					return false;							
+					return 0;							
 		}
 
-		return true;		
+		return 1;		
 	}
 
 	for (size_t k = 0, size = source.size(); k < size; ++k)
@@ -151,30 +155,34 @@ bool cPoints::make_sequence (tpPointsArray source, tpPointsArray result)
 		if (!ok)
 			continue;
 			
-		bool f = make_sequence(temp, result);
-		
+		int f = make_sequence(temp, result, iterations);
+		if (f == 2)
+			return 2;
+
 		result.pop_back();
 
 		if (f)
-			return true;
+			return 1;
 	}
 	
-	return false;
+	return 0;
 }
 
-void cPoints::calc ()
+void cPoints::calc_a ()
 {
-	tpPointsArray temp = a;
+	tpPointsArray temp = a;	
+	int iterations = 0;
 	
-	bool f = make_sequence(a, tpPointsArray());
-	
-	if (!f)
+	if (make_sequence(a, tpPointsArray(), iterations) == 2)
+	{
+		isCalcA = false;
 		a = temp;
+
+		calc_b();
+	}
 }
 
-#else
-
-void cPoints::calc ()
+void cPoints::calc_b ()
 {
 	for (size_t i = 1, size = a.size(); i < size; ++i)
 		if (a[0].first.x > a[i].first.x || (a[0].first.x == a[i].first.x && a[0].first.y > a[i].first.y))
@@ -232,7 +240,13 @@ void cPoints::calc ()
 	}
 }
 
-#endif
+void cPoints::calc ()
+{
+	if (isCalcA)
+		calc_a();
+	else
+		calc_b();
+}
 
 cMarkedPoint cPoints::correct_point (cMarkedPoint point, double width, double height)
 {
@@ -267,7 +281,7 @@ bool cPoints::mark_point (double x, double y, CMARKEDPOINT_FLAG state)
 	return i;
 }
 
-int cPoints::read_from_file (Glib::ustring filename)
+size_t cPoints::read_from_file (Glib::ustring filename)
 {
 	std::ifstream fin(filename.c_str());
 
@@ -308,11 +322,11 @@ int cPoints::read_from_file (Glib::ustring filename)
 			
 	minX = minY = 0;
 
-	double indexX = infelicity / (double)(maxX - minX + minTab);
-	double indexY = infelicity / (double)(maxY - minY + minTab);
+	double indexX = infelicity / (maxX - minX + minTab);
+	double indexY = infelicity / (maxY - minY + minTab);
 
 	for (size_t i = 0; i < a.size(); ++i)
-		a[i].first = cPoint((double)a[i].second.x * indexX, (double)a[i].second.y * indexY);
+		a[i].first = cPoint(a[i].second.x * indexX, a[i].second.y * indexY);
 	
 	return a.size();
 }
@@ -322,7 +336,10 @@ void cPoints::clear ()
 	a.clear();
 }
 
-cPoints::cPoints () {}
+cPoints::cPoints ()
+{
+	isCalcA = true;
+}
 
 size_t cPoints::size ()
 {

@@ -245,14 +245,24 @@ void pTrV1_save_list ()
 	
 	tdTypeChildren children = refTreeModel->children();
 
+	bool ok = true;
+
 	for(tdTypeChildren::iterator it = children.begin(); it != children.end(); ++it)
 	{
 		Gtk::TreeModel::Row row = *it;
 
-		points[currPoints].push(double(row[columns.columnX]), double(row[columns.columnY]));
+		if (points[currPoints].push(double(row[columns.columnX]), double(row[columns.columnY])) != CPOINTS_PUSH_OK)
+			ok = false;
 	}
 	
+	if (!ok)
+	{
+		Gtk::MessageDialog dialogM(*pWindow, "В списке есть одинаковые точки! Повторяющиеся точки будут удалены.", false);
+		dialogM.run();
+	}
+		
 	pTrV1_update_list();
+	
 }
 
 void pNB1_on_switch_page(GtkNotebookPage* page, guint pageNum)
@@ -282,7 +292,7 @@ bool pDA1_on_expose_event(GdkEventExpose * event)
 
 		points[currPoints].correct(event->area.width, event->area.height);
 
-		for (int i = 1, color = 0; i < points[currPoints].size(); ++i, color = (color + 1) % 2)
+		for (size_t i = 1, color = 0; i < points[currPoints].size(); ++i, color = (color + 1) % 2)
 		{
 			cr->set_source_rgba(0.7 + 0.2 * (float)color, 0.0, 0.0, 0.8);
 			cr->move_to(points[currPoints][i - 1].x, points[currPoints][i - 1].y);
